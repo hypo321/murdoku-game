@@ -1,14 +1,18 @@
 import { useState, useCallback, useEffect } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
+import { occupiableTypes } from './data/gameData';
 import {
-  suspects,
-  boardLayout,
-  occupiableTypes,
-  solution,
-} from './data/gameData';
+  getPuzzle,
+  defaultPuzzleId,
+  puzzleList,
+} from './data/puzzles';
 
 function App() {
+  const [currentPuzzleId, setCurrentPuzzleId] =
+    useState(defaultPuzzleId);
+  const puzzle = getPuzzle(currentPuzzleId);
+
   const [placements, setPlacements] = useState({});
   const [markedCells, setMarkedCells] = useState({});
   const [selectedSuspect, setSelectedSuspect] = useState(null);
@@ -17,6 +21,8 @@ function App() {
     'Select a suspect, then click a cell to place them.'
   );
   const [history, setHistory] = useState([]);
+
+  const { suspects, boardLayout, solution, gridSize } = puzzle;
 
   function saveToHistory() {
     setHistory((prev) => [
@@ -60,7 +66,7 @@ function App() {
       }
       return null;
     },
-    [placements]
+    [placements, suspects]
   );
 
   const isSuspectPlaced = useCallback(
@@ -104,7 +110,6 @@ function App() {
 
   function addCrossesToRowAndColumn(row, col, currentMarks) {
     const newMarks = { ...currentMarks };
-    const gridSize = boardLayout.length;
 
     for (let c = 0; c < gridSize; c++) {
       if (c !== col) {
@@ -287,11 +292,27 @@ function App() {
           MURDOKU
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          The Backyard Garden Mystery
+          {puzzle.subtitle}
         </p>
         <p className="text-yellow-400 text-xs mt-1">
-          Difficulty: Easy
+          Difficulty: {puzzle.difficulty}
         </p>
+        {puzzleList.length > 1 && (
+          <select
+            value={currentPuzzleId}
+            onChange={(e) => {
+              setCurrentPuzzleId(e.target.value);
+              handleReset();
+            }}
+            className="mt-2 px-3 py-1 bg-gray-700 text-white rounded-lg text-sm"
+          >
+            {puzzleList.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.difficulty})
+              </option>
+            ))}
+          </select>
+        )}
       </header>
 
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
@@ -301,6 +322,7 @@ function App() {
               Game Board
             </h2>
             <GameBoard
+              puzzle={puzzle}
               markedCells={markedCells}
               selectedCell={selectedCell}
               onCellClick={handleCellClick}

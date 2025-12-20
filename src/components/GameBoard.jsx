@@ -1,17 +1,21 @@
 import Cell from './Cell';
-import { boardLayout } from '../data/gameData';
-import backgroundImage from '../data/backyard-garden.jpg';
 
 function GameBoard({
+  puzzle,
   markedCells,
   selectedCell,
   onCellClick,
   onCellRightClick,
   getSuspectAt,
 }) {
-  const cellSize = 50;
-  const gridSize = 9;
-  const imageBorder = { top: 26, right: 20, bottom: 20, left: 18 };
+  const {
+    boardLayout,
+    backgroundImage,
+    gridSize,
+    cellSize,
+    imageBorder,
+    rooms,
+  } = puzzle;
 
   return (
     <div className="flex flex-col items-center">
@@ -78,6 +82,8 @@ function GameBoard({
                     isSelected={isSelected}
                     onCellClick={onCellClick}
                     onCellRightClick={onCellRightClick}
+                    rooms={rooms}
+                    cellSize={cellSize}
                   />
                 );
               })

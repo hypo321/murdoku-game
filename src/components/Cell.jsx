@@ -1,4 +1,4 @@
-import { cellTypes, occupiableTypes, rooms } from '../data/gameData';
+import { cellTypes, occupiableTypes } from '../data/gameData';
 
 const cellTypeNames = {
   [cellTypes.CARPET]: 'Carpet',
@@ -25,6 +25,8 @@ function Cell({
   isSelected,
   onCellClick,
   onCellRightClick,
+  rooms,
+  cellSize,
 }) {
   const roomData = rooms[cell.room];
   const isOccupiable = occupiableTypes.includes(cell.type);
@@ -65,10 +67,10 @@ function Cell({
       `}
       style={{
         backgroundColor: 'transparent',
-        width: '50px',
-        height: '50px',
-        minWidth: '50px',
-        minHeight: '50px',
+        width: `${cellSize}px`,
+        height: `${cellSize}px`,
+        minWidth: `${cellSize}px`,
+        minHeight: `${cellSize}px`,
         zIndex: 1,
       }}
       onClick={handleClick}
