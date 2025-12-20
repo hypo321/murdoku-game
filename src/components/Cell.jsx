@@ -14,6 +14,9 @@ const cellTypeNames = {
   [cellTypes.COUCH]: 'Couch',
   [cellTypes.POND_WATER]: 'Water',
   [cellTypes.EMPTY]: 'Empty',
+  [cellTypes.HORSE]: 'Horse',
+  [cellTypes.PLANT]: 'Plant',
+  [cellTypes.TRACK]: 'Track',
 };
 
 function Cell({

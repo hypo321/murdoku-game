@@ -12,6 +12,9 @@ export const cellTypes = {
   BED: 'bed',
   COUCH: 'couch',
   POND_WATER: 'pondWater',
+  HORSE: 'horse',
+  PLANT: 'plant',
+  TRACK: 'track',
 };
 
 export const occupiableTypes = [
@@ -19,4 +22,5 @@ export const occupiableTypes = [
   cellTypes.CARPET,
   cellTypes.CHAIR,
   cellTypes.POND_WATER,
+  cellTypes.HORSE,
 ];

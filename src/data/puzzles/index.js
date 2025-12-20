@@ -1,7 +1,9 @@
 import backyardGardenEasy from './backyard-garden-easy';
+import horseTrackHard from './horse-track-hard';
 
 export const puzzles = {
   'backyard-garden-easy': backyardGardenEasy,
+  'horse-track-hard': horseTrackHard,
 };
 
 export const puzzleList = Object.values(puzzles);
