@@ -26,6 +26,8 @@ function Cell({
   suspect,
   isMarked,
   isSelected,
+  isError,
+  isHint,
   onCellClick,
   onCellRightClick,
   rooms,
@@ -59,12 +61,19 @@ function Cell({
   return (
     <div
       className={`
-        relative border border-gray-600/50 flex items-center justify-center
+        relative border flex items-center justify-center
         cursor-pointer transition-all duration-200 select-none
         ${
           isSelected
             ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-gray-800'
             : ''
+        }
+        ${
+          isError
+            ? 'border-4 border-orange-500 bg-orange-500/30'
+            : isHint
+            ? 'border-4 border-green-400 bg-green-400/30'
+            : 'border-gray-600/50'
         }
         hover:bg-white/20
       `}

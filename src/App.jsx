@@ -7,6 +7,7 @@ import {
   defaultPuzzleId,
   puzzleList,
 } from './data/puzzles';
+import { generateHint } from './utils/hintGenerator';
 
 function App() {
   const [currentPuzzleId, setCurrentPuzzleId] =
@@ -21,6 +22,8 @@ function App() {
     'Select a suspect, then click a cell to place them.'
   );
   const [history, setHistory] = useState([]);
+  const [errorCells, setErrorCells] = useState({});
+  const [hintCells, setHintCells] = useState({});
 
   const { suspects, boardLayout, solution, gridSize } = puzzle;
 
@@ -133,6 +136,8 @@ function App() {
   }
 
   function handleCellClick(row, col) {
+    setErrorCells({});
+    setHintCells({});
     const cellKey = `${row}-${col}`;
     const cell = boardLayout[row][col];
     const isOccupiable = occupiableTypes.includes(cell.type);
@@ -213,6 +218,8 @@ function App() {
   }
 
   function handleCellRightClick(row, col) {
+    setErrorCells({});
+    setHintCells({});
     const cellKey = `${row}-${col}`;
     const existingSuspect = getSuspectAt(row, col);
 
@@ -232,6 +239,8 @@ function App() {
     setSelectedSuspect(null);
     setSelectedCell(null);
     setHistory([]);
+    setErrorCells({});
+    setHintCells({});
     setMessage('Game reset! Select a suspect to begin.');
   }
 
@@ -239,6 +248,81 @@ function App() {
     saveToHistory();
     setMarkedCells({});
     setMessage('All marks cleared.');
+  }
+
+  function validateCurrentState() {
+    const errors = {
+      wrongPlacements: [],
+      wrongMarks: [],
+    };
+
+    // Check for wrongly placed suspects
+    for (const [cellKey, suspectId] of Object.entries(placements)) {
+      const [row, col] = cellKey.split('-').map(Number);
+      const correctPos = solution[suspectId];
+      if (correctPos.row !== row || correctPos.col !== col) {
+        const suspect = suspects.find((s) => s.id === suspectId);
+        errors.wrongPlacements.push({
+          suspect,
+          currentPos: { row, col },
+          correctPos,
+        });
+      }
+    }
+
+    // Check for X marks on cells that should have suspects
+    for (const cellKey of Object.keys(markedCells)) {
+      if (!markedCells[cellKey]) continue;
+      const [row, col] = cellKey.split('-').map(Number);
+      for (const [, pos] of Object.entries(solution)) {
+        if (pos.row === row && pos.col === col) {
+          errors.wrongMarks.push({ row, col });
+          break;
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  function handleGetHint() {
+    setErrorCells({});
+    setHintCells({});
+    const errors = validateCurrentState();
+
+    if (errors.wrongPlacements.length > 0) {
+      const first = errors.wrongPlacements[0];
+      setMessage(
+        `⚠️ ${first.suspect.name} is not in the correct position. Try moving them.`
+      );
+      return;
+    }
+
+    if (errors.wrongMarks.length > 0) {
+      const highlightedCells = {};
+      for (const cell of errors.wrongMarks) {
+        highlightedCells[`${cell.row}-${cell.col}`] = true;
+      }
+      setErrorCells(highlightedCells);
+      setMessage(
+        `⚠️ Something is wrong with the highlighted cell${
+          errors.wrongMarks.length > 1 ? 's' : ''
+        }. Check your X marks.`
+      );
+      return;
+    }
+
+    // Generate a hint based on current state
+    const hint = generateHint(puzzle, placements, markedCells);
+    setMessage(hint.message);
+
+    if (hint.highlightCells && hint.highlightCells.length > 0) {
+      const highlighted = {};
+      for (const cell of hint.highlightCells) {
+        highlighted[`${cell.row}-${cell.col}`] = true;
+      }
+      setHintCells(highlighted);
+    }
   }
 
   function handleCheckSolution() {
@@ -328,6 +412,8 @@ function App() {
               onCellClick={handleCellClick}
               onCellRightClick={handleCellRightClick}
               getSuspectAt={getSuspectAt}
+              errorCells={errorCells}
+              hintCells={hintCells}
             />
 
             <div className="mt-6 p-4 bg-gray-700/50 rounded-lg">
@@ -336,31 +422,37 @@ function App() {
               </p>
             </div>
 
-            <div className="mt-4 flex gap-4 justify-center">
+            <div className="mt-4 flex flex-wrap gap-2 justify-center">
               <button
                 onClick={handleReset}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm"
               >
-                Reset Game
+                Reset
               </button>
               <button
                 onClick={handleClearMarks}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors text-sm"
               >
                 Clear Marks
               </button>
               <button
                 onClick={handleCheckSolution}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors text-sm"
               >
                 Check Solution
               </button>
               <button
                 onClick={handleUndo}
                 disabled={history.length === 0}
-                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+                className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors text-sm"
               >
                 Undo
+              </button>
+              <button
+                onClick={handleGetHint}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors text-sm"
+              >
+                💡 Get Hint
               </button>
             </div>
 

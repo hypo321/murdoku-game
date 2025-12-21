@@ -7,6 +7,8 @@ function GameBoard({
   onCellClick,
   onCellRightClick,
   getSuspectAt,
+  errorCells = {},
+  hintCells = {},
 }) {
   const {
     boardLayout,
@@ -69,6 +71,10 @@ function GameBoard({
                   selectedCell.col === colIndex;
                 const isMarked =
                   markedCells[`${rowIndex}-${colIndex}`] || false;
+                const isError =
+                  errorCells[`${rowIndex}-${colIndex}`] || false;
+                const isHint =
+                  hintCells[`${rowIndex}-${colIndex}`] || false;
                 const suspect = getSuspectAt(rowIndex, colIndex);
 
                 return (
@@ -80,6 +86,8 @@ function GameBoard({
                     suspect={suspect}
                     isMarked={isMarked}
                     isSelected={isSelected}
+                    isError={isError}
+                    isHint={isHint}
                     onCellClick={onCellClick}
                     onCellRightClick={onCellRightClick}
                     rooms={rooms}
