@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { occupiableTypes } from '../data/gameData';
 import { createCellKey, parseCellKey, MESSAGES } from '../constants';
 
@@ -12,6 +12,17 @@ import { createCellKey, parseCellKey, MESSAGES } from '../constants';
  */
 
 /**
+ * @typedef {Object.<string, string[]>} AutoMarks
+ * Maps cell keys to arrays of suspect IDs that auto-placed marks on that cell.
+ * A cell can have marks from multiple suspects if they share a row/column.
+ */
+
+/**
+ * @typedef {Object.<string, boolean>} ManualMarks
+ * Maps cell keys to boolean for manually placed X marks.
+ */
+
+/**
  * Custom hook for managing game state including placements, marks, history, and selection.
  *
  * @param {Puzzle} puzzle - The current puzzle
@@ -22,8 +33,10 @@ export function useGameState(puzzle) {
 
   /** @type {[Placements, Function]} */
   const [placements, setPlacements] = useState({});
-  /** @type {[MarkedCells, Function]} */
-  const [markedCells, setMarkedCells] = useState({});
+  /** @type {[AutoMarks, Function]} */
+  const [autoMarks, setAutoMarks] = useState({});
+  /** @type {[ManualMarks, Function]} */
+  const [manualMarks, setManualMarks] = useState({});
   /** @type {[Suspect|null, Function]} */
   const [selectedSuspect, setSelectedSuspect] = useState(null);
   /** @type {[CellPosition|null, Function]} */
@@ -34,6 +47,28 @@ export function useGameState(puzzle) {
   const [history, setHistory] = useState([]);
 
   /**
+   * Computed markedCells - combines autoMarks and manualMarks.
+   * A cell is marked if it has any auto-marks OR is manually marked.
+   * @type {MarkedCells}
+   */
+  const markedCells = useMemo(() => {
+    const combined = {};
+    // Add all cells with auto-marks
+    for (const cellKey of Object.keys(autoMarks)) {
+      if (autoMarks[cellKey] && autoMarks[cellKey].length > 0) {
+        combined[cellKey] = true;
+      }
+    }
+    // Add all manually marked cells
+    for (const cellKey of Object.keys(manualMarks)) {
+      if (manualMarks[cellKey]) {
+        combined[cellKey] = true;
+      }
+    }
+    return combined;
+  }, [autoMarks, manualMarks]);
+
+  /**
    * Saves current state to history for undo functionality.
    */
   const saveToHistory = useCallback(() => {
@@ -41,10 +76,11 @@ export function useGameState(puzzle) {
       ...prev,
       {
         placements: { ...placements },
-        markedCells: { ...markedCells },
+        autoMarks: JSON.parse(JSON.stringify(autoMarks)),
+        manualMarks: { ...manualMarks },
       },
     ]);
-  }, [placements, markedCells]);
+  }, [placements, autoMarks, manualMarks]);
 
   /**
    * Undoes the last action.
@@ -56,7 +92,8 @@ export function useGameState(puzzle) {
     }
     const lastState = history[history.length - 1];
     setPlacements(lastState.placements);
-    setMarkedCells(lastState.markedCells);
+    setAutoMarks(lastState.autoMarks);
+    setManualMarks(lastState.manualMarks);
     setHistory((prev) => prev.slice(0, -1));
     setMessage(MESSAGES.UNDO_SUCCESS);
   }, [history]);
@@ -124,38 +161,80 @@ export function useGameState(puzzle) {
   );
 
   /**
-   * Adds X marks to all cells in the same row and column as a placement.
+   * Adds auto X marks for a suspect placement and tracks which suspect placed them.
    *
+   * @param {string} suspectId - The suspect being placed
    * @param {number} row - Row of the placement
    * @param {number} col - Column of the placement
-   * @param {MarkedCells} currentMarks - Current marked cells
-   * @returns {MarkedCells} Updated marked cells
+   * @param {AutoMarks} currentAutoMarks - Current auto marks
+   * @param {Placements} currentPlacements - Current placements (to avoid marking occupied cells)
+   * @returns {AutoMarks} Updated auto marks
    */
-  const addCrossesToRowAndColumn = useCallback(
-    (row, col, currentMarks) => {
-      const newMarks = { ...currentMarks };
+  const addAutoMarksForSuspect = useCallback(
+    (suspectId, row, col, currentAutoMarks, currentPlacements) => {
+      const newAutoMarks = JSON.parse(
+        JSON.stringify(currentAutoMarks)
+      );
 
+      // Mark all cells in the same row
       for (let c = 0; c < gridSize; c++) {
         if (c !== col) {
           const key = createCellKey(row, c);
-          if (!placements[key]) {
-            newMarks[key] = true;
+          if (!currentPlacements[key]) {
+            if (!newAutoMarks[key]) {
+              newAutoMarks[key] = [];
+            }
+            if (!newAutoMarks[key].includes(suspectId)) {
+              newAutoMarks[key].push(suspectId);
+            }
           }
         }
       }
 
+      // Mark all cells in the same column
       for (let r = 0; r < gridSize; r++) {
         if (r !== row) {
           const key = createCellKey(r, col);
-          if (!placements[key]) {
-            newMarks[key] = true;
+          if (!currentPlacements[key]) {
+            if (!newAutoMarks[key]) {
+              newAutoMarks[key] = [];
+            }
+            if (!newAutoMarks[key].includes(suspectId)) {
+              newAutoMarks[key].push(suspectId);
+            }
           }
         }
       }
 
-      return newMarks;
+      return newAutoMarks;
     },
-    [gridSize, placements]
+    [gridSize]
+  );
+
+  /**
+   * Removes auto X marks that were placed by a specific suspect.
+   *
+   * @param {string} suspectId - The suspect being removed/moved
+   * @param {AutoMarks} currentAutoMarks - Current auto marks
+   * @returns {AutoMarks} Updated auto marks with suspect's marks removed
+   */
+  const removeAutoMarksForSuspect = useCallback(
+    (suspectId, currentAutoMarks) => {
+      const newAutoMarks = {};
+
+      for (const [cellKey, suspectIds] of Object.entries(
+        currentAutoMarks
+      )) {
+        const filtered = suspectIds.filter((id) => id !== suspectId);
+        if (filtered.length > 0) {
+          newAutoMarks[cellKey] = filtered;
+        }
+        // If array is empty, we don't add the key (mark disappears)
+      }
+
+      return newAutoMarks;
+    },
+    []
   );
 
   /**
@@ -208,15 +287,23 @@ export function useGameState(puzzle) {
           selectedSuspect &&
           selectedSuspect.id === existingSuspect.id
         ) {
+          // Remove the suspect from the board
           saveToHistory();
           const newPlacements = { ...placements };
           delete newPlacements[cellKey];
           setPlacements(newPlacements);
+          // Remove auto-marks for this suspect
+          const newAutoMarks = removeAutoMarksForSuspect(
+            existingSuspect.id,
+            autoMarks
+          );
+          setAutoMarks(newAutoMarks);
           setMessage(
             `${existingSuspect.name} removed from the board.`
           );
           setSelectedSuspect(null);
         } else if (selectedSuspect) {
+          // Swap: move selected suspect to this cell (displacing existing)
           saveToHistory();
           const newPlacements = { ...placements };
           const oldPosition = getPlacementPosition(
@@ -230,17 +317,25 @@ export function useGameState(puzzle) {
           delete newPlacements[cellKey];
           newPlacements[cellKey] = selectedSuspect.id;
           setPlacements(newPlacements);
-          const newMarks = addCrossesToRowAndColumn(
+          // Remove old auto-marks for the moving suspect, then add new ones
+          let newAutoMarks = removeAutoMarksForSuspect(
+            selectedSuspect.id,
+            autoMarks
+          );
+          newAutoMarks = addAutoMarksForSuspect(
+            selectedSuspect.id,
             row,
             col,
-            markedCells
+            newAutoMarks,
+            newPlacements
           );
-          setMarkedCells(newMarks);
+          setAutoMarks(newAutoMarks);
           setMessage(
             `${selectedSuspect.name} swapped with ${existingSuspect.name}.`
           );
           setSelectedSuspect(null);
         } else {
+          // Select the existing suspect
           setSelectedSuspect(existingSuspect);
           setMessage(
             `${existingSuspect.name} selected. Click another cell to move, or click again to remove.`
@@ -266,20 +361,33 @@ export function useGameState(puzzle) {
         }
         newPlacements[cellKey] = selectedSuspect.id;
         setPlacements(newPlacements);
-        const newMarks = addCrossesToRowAndColumn(
+        // Remove old auto-marks (if moving) and add new ones
+        let newAutoMarks = removeAutoMarksForSuspect(
+          selectedSuspect.id,
+          autoMarks
+        );
+        newAutoMarks = addAutoMarksForSuspect(
+          selectedSuspect.id,
           row,
           col,
-          markedCells
+          newAutoMarks,
+          newPlacements
         );
-        setMarkedCells(newMarks);
+        setAutoMarks(newAutoMarks);
         setMessage(`${selectedSuspect.name} placed!`);
         setSelectedSuspect(null);
       } else {
+        // Toggle manual mark
         saveToHistory();
-        setMarkedCells((prev) => ({
-          ...prev,
-          [cellKey]: !prev[cellKey],
-        }));
+        setManualMarks((prev) => {
+          const newMarks = { ...prev };
+          if (newMarks[cellKey]) {
+            delete newMarks[cellKey];
+          } else {
+            newMarks[cellKey] = true;
+          }
+          return newMarks;
+        });
       }
     },
     [
@@ -287,15 +395,16 @@ export function useGameState(puzzle) {
       getSuspectAt,
       selectedSuspect,
       placements,
-      markedCells,
+      autoMarks,
       getPlacementPosition,
-      addCrossesToRowAndColumn,
+      addAutoMarksForSuspect,
+      removeAutoMarksForSuspect,
       saveToHistory,
     ]
   );
 
   /**
-   * Handles right-click on a cell (toggle X mark).
+   * Handles right-click on a cell (toggle manual X mark).
    *
    * @param {number} row - Row index
    * @param {number} col - Column index
@@ -314,10 +423,15 @@ export function useGameState(puzzle) {
         return;
       }
 
-      setMarkedCells((prev) => ({
-        ...prev,
-        [cellKey]: !prev[cellKey],
-      }));
+      setManualMarks((prev) => {
+        const newMarks = { ...prev };
+        if (newMarks[cellKey]) {
+          delete newMarks[cellKey];
+        } else {
+          newMarks[cellKey] = true;
+        }
+        return newMarks;
+      });
     },
     [getSuspectAt]
   );
@@ -327,7 +441,8 @@ export function useGameState(puzzle) {
    */
   const handleReset = useCallback(() => {
     setPlacements({});
-    setMarkedCells({});
+    setAutoMarks({});
+    setManualMarks({});
     setSelectedSuspect(null);
     setSelectedCell(null);
     setHistory([]);
@@ -335,11 +450,12 @@ export function useGameState(puzzle) {
   }, []);
 
   /**
-   * Clears all X marks.
+   * Clears all X marks (both auto and manual).
    */
   const handleClearMarks = useCallback(() => {
     saveToHistory();
-    setMarkedCells({});
+    setAutoMarks({});
+    setManualMarks({});
     setMessage(MESSAGES.MARKS_CLEARED);
   }, [saveToHistory]);
 
