@@ -1,4 +1,5 @@
 import { occupiableTypes } from '../data/gameData';
+import { createCellKey, parseCellKey } from '../constants';
 
 /**
  * Generates hints for the backyard-garden-easy puzzle
@@ -83,14 +84,14 @@ function getCellsAdjacentToType(boardLayout, cellType) {
 
 // Helper: Check if a cell is available (not placed, not in blocked row/col)
 function isCellAvailable(row, col, placements, markedCells) {
-  const key = `${row}-${col}`;
+  const key = createCellKey(row, col);
   if (placements[key]) return false;
   if (markedCells[key]) return false;
 
   // Check if row or column is blocked by existing placement
   for (const [placedKey] of Object.entries(placements)) {
-    const [pRow, pCol] = placedKey.split('-').map(Number);
-    if (pRow === row || pCol === col) return false;
+    const pos = parseCellKey(placedKey);
+    if (pos.row === row || pos.col === col) return false;
   }
 
   return true;
@@ -122,7 +123,7 @@ function getCellsToMarkInRow(
   for (const row of rows) {
     for (let col = 0; col < boardLayout[row].length; col++) {
       const cell = boardLayout[row][col];
-      const key = `${row}-${col}`;
+      const key = createCellKey(row, col);
 
       // Exclude cells in the target room, non-occupiable cells, placed cells, and already marked cells
       if (

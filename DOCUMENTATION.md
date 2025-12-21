@@ -82,6 +82,8 @@ murdoku-game/
 │   ├── App.css                 # Application styles
 │   ├── index.css               # Global styles (Tailwind)
 │   ├── main.jsx                # React entry point
+│   ├── types.js                # JSDoc type definitions
+│   ├── constants.js             # Magic strings and numbers
 │   ├── components/
 │   │   ├── Cell.jsx            # Individual board cell
 │   │   ├── GameBoard.jsx       # Game board grid
@@ -94,8 +96,14 @@ murdoku-game/
 │   │       ├── index.js              # Puzzle registry
 │   │       ├── backyard-garden-easy.js
 │   │       └── horse-track-hard.js
+│   ├── hooks/
+│   │   ├── index.js            # Hook exports
+│   │   ├── useGameState.js     # Game state management hook
+│   │   ├── useHints.js         # Hint generation hook
+│   │   └── useValidation.js    # Validation hook
 │   └── utils/
-│       └── hintGenerator.js    # Hint system logic
+│       ├── hintGenerator.js    # Hint system logic
+│       └── validation.js       # State validation utilities
 ├── public/
 ├── package.json
 └── DOCUMENTATION.md
@@ -461,23 +469,31 @@ Renders suspect information cards with:
 
 ### Code Quality
 
-1. **Extract validation logic**: Move `validateCurrentState` to a separate utility file for better separation of concerns.
+1. ~~**Extract validation logic**~~: ✅ Moved to `src/utils/validation.js` with `validateCurrentState()`, `hasErrors()`, and `checkSolution()` functions.
 
-2. **Type definitions**: Add TypeScript or JSDoc type definitions for puzzle structure, state objects, and component props.
+2. ~~**Type definitions**~~: ✅ Added JSDoc type definitions in `src/types.js` for:
+   - Cell types (`Cell`, `CellPosition`, `CellWithPosition`, `CellType`)
+   - Room types (`Room`, `RoomMap`)
+   - Suspect types (`Suspect`)
+   - Puzzle types (`Puzzle`, `ImageBorder`, `Solution`)
+   - State types (`Placements`, `MarkedCells`, `HighlightedCells`, `HistoryEntry`, `GameState`)
+   - Validation types (`ValidationErrors`, `WrongPlacement`)
+   - Hint types (`Hint`)
+   - Component props (`CellProps`, `GameBoardProps`, `SuspectCardProps`)
 
-3. **Custom hooks**: Extract game logic into custom hooks:
+3. ~~**Custom hooks**~~: ✅ Extracted game logic into custom hooks in `src/hooks/`:
    ```javascript
-   // Suggested hooks
-   useGameState(puzzle)      // Placements, marks, history
-   useHints(puzzle, state)   // Hint generation
-   useValidation(puzzle, state)  // State validation
+   useGameState(puzzle)      // Placements, marks, history, selection, actions
+   useHints(puzzle)          // Hint generation, error/hint cell highlighting
+   useValidation(puzzle)     // State validation against solution
    ```
 
-4. **Constants file**: Move magic strings and numbers to a constants file:
-   ```javascript
-   export const CELL_KEY_SEPARATOR = '-';
-   export const DEFAULT_CELL_SIZE = 50;
-   ```
+4. ~~**Constants file**~~: ✅ Created `src/constants.js` with:
+   - Cell key utilities (`CELL_KEY_SEPARATOR`, `createCellKey()`, `parseCellKey()`)
+   - Default values (`DEFAULT_CELL_SIZE`, `DEFAULT_GRID_SIZE`)
+   - UI messages (`MESSAGES` object)
+   - Keyboard shortcuts (`KEYBOARD_SHORTCUTS`)
+   - CSS classes (`CSS_CLASSES`)
 
 ### Features
 
@@ -583,4 +599,4 @@ This project is for educational and entertainment purposes.
 
 ---
 
-*Documentation last updated: December 2024*
+*Documentation last updated: December 21, 2024*

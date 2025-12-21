@@ -1,5 +1,12 @@
 import { cellTypes, occupiableTypes } from '../data/gameData';
 
+/**
+ * @typedef {import('../types').CellProps} CellProps
+ * @typedef {import('../types').Cell} CellData
+ * @typedef {import('../types').Suspect} Suspect
+ * @typedef {import('../types').RoomMap} RoomMap
+ */
+
 const cellTypeNames = {
   [cellTypes.CARPET]: 'Carpet',
   [cellTypes.CHAIR]: 'Chair',
@@ -19,6 +26,25 @@ const cellTypeNames = {
   [cellTypes.TRACK]: 'Track',
 };
 
+/**
+ * Renders an individual cell on the game board.
+ * Displays suspect avatars, X marks, and various highlight states.
+ *
+ * @param {CellProps} props - Component props
+ * @param {CellData} props.cell - Cell data containing room and type
+ * @param {number} props.row - Row index (0-indexed)
+ * @param {number} props.col - Column index (0-indexed)
+ * @param {Suspect|null} props.suspect - Suspect at this cell or null
+ * @param {boolean} props.isMarked - Whether cell has X mark
+ * @param {boolean} props.isSelected - Whether cell is selected
+ * @param {boolean} props.isError - Whether cell has error highlight
+ * @param {boolean} props.isHint - Whether cell has hint highlight
+ * @param {function(number, number): void} props.onCellClick - Left click handler
+ * @param {function(number, number): void} props.onCellRightClick - Right click handler
+ * @param {RoomMap} props.rooms - Room definitions
+ * @param {number} props.cellSize - Cell size in pixels
+ * @returns {JSX.Element}
+ */
 function Cell({
   cell,
   row,

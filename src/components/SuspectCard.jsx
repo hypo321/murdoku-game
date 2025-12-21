@@ -1,3 +1,19 @@
+/**
+ * @typedef {import('../types').SuspectCardProps} SuspectCardProps
+ * @typedef {import('../types').Suspect} Suspect
+ */
+
+/**
+ * Renders a suspect information card.
+ * Shows avatar, name, clue text, selection state, and placed indicator.
+ *
+ * @param {SuspectCardProps} props - Component props
+ * @param {Suspect} props.suspect - Suspect data
+ * @param {boolean} props.isSelected - Whether suspect is currently selected
+ * @param {boolean} props.isPlaced - Whether suspect is placed on board
+ * @param {function(Suspect): void} props.onClick - Click handler
+ * @returns {JSX.Element}
+ */
 function SuspectCard({ suspect, isSelected, isPlaced, onClick }) {
   return (
     <div

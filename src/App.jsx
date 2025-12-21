@@ -1,383 +1,137 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
-import { occupiableTypes } from './data/gameData';
 import {
   getPuzzle,
   defaultPuzzleId,
   puzzleList,
 } from './data/puzzles';
-import { generateHint } from './utils/hintGenerator';
+import { useGameState, useHints, useValidation } from './hooks';
 
+/**
+ * Main application component for Murdoku game.
+ * Uses custom hooks for game state, hints, and validation.
+ */
 function App() {
   const [currentPuzzleId, setCurrentPuzzleId] =
     useState(defaultPuzzleId);
   const puzzle = getPuzzle(currentPuzzleId);
+  const { suspects } = puzzle;
 
-  const [placements, setPlacements] = useState({});
-  const [markedCells, setMarkedCells] = useState({});
-  const [selectedSuspect, setSelectedSuspect] = useState(null);
-  const [selectedCell, setSelectedCell] = useState(null);
-  const [message, setMessage] = useState(
-    'Select a suspect, then click a cell to place them.'
-  );
-  const [history, setHistory] = useState([]);
-  const [errorCells, setErrorCells] = useState({});
-  const [hintCells, setHintCells] = useState({});
+  // Custom hooks for game logic
+  const gameState = useGameState(puzzle);
+  const { errorCells, hintCells, getHint, clearHighlights } =
+    useHints(puzzle);
+  const { checkCurrentSolution } = useValidation(puzzle);
 
-  const { suspects, boardLayout, solution, gridSize } = puzzle;
+  // Destructure game state for easier access
+  const {
+    placements,
+    markedCells,
+    selectedSuspect,
+    selectedCell,
+    message,
+    history,
+    placedCount,
+    totalSuspects,
+    handleSuspectClick,
+    handleCellClick: gameHandleCellClick,
+    handleCellRightClick: gameHandleCellRightClick,
+    handleUndo,
+    handleReset: gameHandleReset,
+    handleClearMarks,
+    selectSuspect,
+    setMessage,
+    getSuspectAt,
+    isSuspectPlaced,
+  } = gameState;
 
-  function saveToHistory() {
-    setHistory((prev) => [
-      ...prev,
-      {
-        placements: { ...placements },
-        markedCells: { ...markedCells },
-      },
-    ]);
-  }
-
-  const handleUndo = useCallback(() => {
-    if (history.length === 0) {
-      setMessage('Nothing to undo.');
-      return;
-    }
-    const lastState = history[history.length - 1];
-    setPlacements(lastState.placements);
-    setMarkedCells(lastState.markedCells);
-    setHistory((prev) => prev.slice(0, -1));
-    setMessage('Undo successful.');
-  }, [history]);
-
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo]);
-
-  const getSuspectAt = useCallback(
+  /**
+   * Wraps cell click to clear highlights first.
+   */
+  const handleCellClick = useCallback(
     (row, col) => {
-      const key = `${row}-${col}`;
-      const suspectId = placements[key];
-      if (suspectId) {
-        return suspects.find((s) => s.id === suspectId);
-      }
-      return null;
+      gameHandleCellClick(row, col, clearHighlights);
     },
-    [placements, suspects]
+    [gameHandleCellClick, clearHighlights]
   );
 
-  const isSuspectPlaced = useCallback(
-    (suspectId) => {
-      return Object.values(placements).includes(suspectId);
+  /**
+   * Wraps cell right-click to clear highlights first.
+   */
+  const handleCellRightClick = useCallback(
+    (row, col) => {
+      gameHandleCellRightClick(row, col, clearHighlights);
     },
-    [placements]
+    [gameHandleCellRightClick, clearHighlights]
   );
 
-  const getPlacementPosition = useCallback(
-    (suspectId) => {
-      for (const [key, id] of Object.entries(placements)) {
-        if (id === suspectId) {
-          const [row, col] = key.split('-').map(Number);
-          return { row, col };
-        }
-      }
-      return null;
-    },
-    [placements]
-  );
+  /**
+   * Wraps reset to also clear highlights.
+   */
+  const handleReset = useCallback(() => {
+    clearHighlights();
+    gameHandleReset();
+  }, [clearHighlights, gameHandleReset]);
 
-  function handleSuspectClick(suspect) {
-    if (selectedSuspect?.id === suspect.id) {
-      setSelectedSuspect(null);
-      setMessage('Suspect deselected.');
-    } else {
-      setSelectedSuspect(suspect);
-      const placed = isSuspectPlaced(suspect.id);
-      if (placed) {
-        setMessage(
-          `${suspect.name} is already placed. Click their cell to remove, or select another cell to move.`
-        );
-      } else {
-        setMessage(
-          `${suspect.name} selected. Click a cell on the board to place them.`
-        );
-      }
-    }
-  }
-
-  function addCrossesToRowAndColumn(row, col, currentMarks) {
-    const newMarks = { ...currentMarks };
-
-    for (let c = 0; c < gridSize; c++) {
-      if (c !== col) {
-        const key = `${row}-${c}`;
-        if (!placements[key]) {
-          newMarks[key] = true;
-        }
-      }
-    }
-
-    for (let r = 0; r < gridSize; r++) {
-      if (r !== row) {
-        const key = `${r}-${col}`;
-        if (!placements[key]) {
-          newMarks[key] = true;
-        }
-      }
-    }
-
-    return newMarks;
-  }
-
-  function handleCellClick(row, col) {
-    setErrorCells({});
-    setHintCells({});
-    const cellKey = `${row}-${col}`;
-    const cell = boardLayout[row][col];
-    const isOccupiable = occupiableTypes.includes(cell.type);
-    const existingSuspect = getSuspectAt(row, col);
-
-    if (existingSuspect) {
-      if (
-        selectedSuspect &&
-        selectedSuspect.id === existingSuspect.id
-      ) {
-        saveToHistory();
-        const newPlacements = { ...placements };
-        delete newPlacements[cellKey];
-        setPlacements(newPlacements);
-        setMessage(`${existingSuspect.name} removed from the board.`);
-        setSelectedSuspect(null);
-      } else if (selectedSuspect) {
-        saveToHistory();
-        const newPlacements = { ...placements };
-        const oldPosition = getPlacementPosition(selectedSuspect.id);
-        if (oldPosition) {
-          delete newPlacements[
-            `${oldPosition.row}-${oldPosition.col}`
-          ];
-        }
-        delete newPlacements[cellKey];
-        newPlacements[cellKey] = selectedSuspect.id;
-        setPlacements(newPlacements);
-        const newMarks = addCrossesToRowAndColumn(
-          row,
-          col,
-          markedCells
-        );
-        setMarkedCells(newMarks);
-        setMessage(
-          `${selectedSuspect.name} swapped with ${existingSuspect.name}.`
-        );
-        setSelectedSuspect(null);
-      } else {
-        setSelectedSuspect(existingSuspect);
-        setMessage(
-          `${existingSuspect.name} selected. Click another cell to move, or click again to remove.`
-        );
-      }
-      return;
-    }
-
-    if (selectedSuspect) {
-      if (!isOccupiable) {
-        setMessage(
-          `Cannot place suspects on ${cell.type}. Try a carpet, chair, or empty space.`
-        );
-        return;
-      }
-      saveToHistory();
-      const newPlacements = { ...placements };
-      const oldPosition = getPlacementPosition(selectedSuspect.id);
-      if (oldPosition) {
-        delete newPlacements[`${oldPosition.row}-${oldPosition.col}`];
-      }
-      newPlacements[cellKey] = selectedSuspect.id;
-      setPlacements(newPlacements);
-      const newMarks = addCrossesToRowAndColumn(
-        row,
-        col,
-        markedCells
-      );
-      setMarkedCells(newMarks);
-      setMessage(`${selectedSuspect.name} placed!`);
-      setSelectedSuspect(null);
-    } else {
-      saveToHistory();
-      setMarkedCells((prev) => ({
-        ...prev,
-        [cellKey]: !prev[cellKey],
-      }));
-    }
-  }
-
-  function handleCellRightClick(row, col) {
-    setErrorCells({});
-    setHintCells({});
-    const cellKey = `${row}-${col}`;
-    const existingSuspect = getSuspectAt(row, col);
-
-    if (existingSuspect) {
-      return;
-    }
-
-    setMarkedCells((prev) => ({
-      ...prev,
-      [cellKey]: !prev[cellKey],
-    }));
-  }
-
-  function handleReset() {
-    setPlacements({});
-    setMarkedCells({});
-    setSelectedSuspect(null);
-    setSelectedCell(null);
-    setHistory([]);
-    setErrorCells({});
-    setHintCells({});
-    setMessage('Game reset! Select a suspect to begin.');
-  }
-
-  function handleClearMarks() {
-    saveToHistory();
-    setMarkedCells({});
-    setMessage('All marks cleared.');
-  }
-
-  function validateCurrentState() {
-    const errors = {
-      wrongPlacements: [],
-      wrongMarks: [],
-    };
-
-    // Check for wrongly placed suspects
-    for (const [cellKey, suspectId] of Object.entries(placements)) {
-      const [row, col] = cellKey.split('-').map(Number);
-      const correctPos = solution[suspectId];
-      if (correctPos.row !== row || correctPos.col !== col) {
-        const suspect = suspects.find((s) => s.id === suspectId);
-        errors.wrongPlacements.push({
-          suspect,
-          currentPos: { row, col },
-          correctPos,
-        });
-      }
-    }
-
-    // Check for X marks on cells that should have suspects
-    for (const cellKey of Object.keys(markedCells)) {
-      if (!markedCells[cellKey]) continue;
-      const [row, col] = cellKey.split('-').map(Number);
-      for (const [, pos] of Object.entries(solution)) {
-        if (pos.row === row && pos.col === col) {
-          errors.wrongMarks.push({ row, col });
-          break;
-        }
-      }
-    }
-
-    return errors;
-  }
-
+  /**
+   * Gets a hint and handles the result.
+   */
   function handleGetHint() {
-    setErrorCells({});
-    setHintCells({});
-    const errors = validateCurrentState();
+    const result = getHint(placements, markedCells);
 
-    if (errors.wrongPlacements.length > 0) {
-      const first = errors.wrongPlacements[0];
-      setMessage(
-        `⚠️ ${first.suspect.name} is not in the correct position. Try moving them.`
-      );
+    if (result.error) {
+      if (result.error.type === 'wrongPlacement') {
+        const { suspect } = result.error.data;
+        setMessage(
+          `⚠️ ${suspect.name} is not in the correct position. Try moving them.`
+        );
+      } else if (result.error.type === 'wrongMarks') {
+        const count = result.error.data.length;
+        setMessage(
+          `⚠️ Something is wrong with the highlighted cell${
+            count > 1 ? 's' : ''
+          }. Check your X marks.`
+        );
+      }
       return;
     }
 
-    if (errors.wrongMarks.length > 0) {
-      const highlightedCells = {};
-      for (const cell of errors.wrongMarks) {
-        highlightedCells[`${cell.row}-${cell.col}`] = true;
-      }
-      setErrorCells(highlightedCells);
-      setMessage(
-        `⚠️ Something is wrong with the highlighted cell${
-          errors.wrongMarks.length > 1 ? 's' : ''
-        }. Check your X marks.`
-      );
-      return;
-    }
-
-    // Generate a hint based on current state
-    const hint = generateHint(puzzle, placements, markedCells);
-    setMessage(hint.message);
-
-    if (hint.highlightCells && hint.highlightCells.length > 0) {
-      const highlighted = {};
-      for (const cell of hint.highlightCells) {
-        highlighted[`${cell.row}-${cell.col}`] = true;
-      }
-      setHintCells(highlighted);
-    }
-
-    // Auto-select the suspect if the hint is for placement (not marking X's)
-    if (hint.suspect && hint.action !== 'mark') {
-      const suspectToSelect = suspects.find(
-        (s) => s.id === hint.suspect
-      );
-      if (suspectToSelect) {
-        setSelectedSuspect(suspectToSelect);
+    if (result.hint) {
+      setMessage(result.hint.message);
+      if (result.suspectToSelect) {
+        selectSuspect(result.suspectToSelect);
       }
     }
   }
 
+  /**
+   * Checks the current solution and displays the result.
+   */
   function handleCheckSolution() {
-    const totalSuspects = suspects.length;
-    const placedCount = Object.keys(placements).length;
+    const result = checkCurrentSolution(placements);
 
-    if (placedCount < totalSuspects) {
+    if (!result.allPlaced) {
       setMessage(
         `Place all ${totalSuspects} suspects before checking! (${placedCount}/${totalSuspects} placed)`
       );
       return;
     }
 
-    let correctCount = 0;
-    const wrongPlacements = [];
-
-    for (const suspect of suspects) {
-      const correctPos = solution[suspect.id];
-      const correctKey = `${correctPos.row}-${correctPos.col}`;
-      const placedKey = Object.entries(placements).find(
-        ([, id]) => id === suspect.id
-      )?.[0];
-
-      if (placedKey === correctKey) {
-        correctCount++;
-      } else {
-        wrongPlacements.push(suspect.name);
-      }
-    }
-
-    if (correctCount === totalSuspects) {
+    if (result.isComplete) {
       setMessage(
         '🎉 Congratulations! All suspects are correctly placed! You solved the Murdoku!'
       );
     } else {
       setMessage(
-        `${correctCount}/${totalSuspects} correct. Wrong placements: ${wrongPlacements.join(
+        `${
+          result.correctCount
+        }/${totalSuspects} correct. Wrong placements: ${result.wrongNames.join(
           ', '
         )}`
       );
     }
   }
-
-  const placedCount = Object.keys(placements).length;
-  const totalSuspects = suspects.length;
 
   return (
     <div className="min-h-screen p-4 md:p-8">

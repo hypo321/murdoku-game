@@ -1,5 +1,28 @@
 import Cell from './Cell';
 
+/**
+ * @typedef {import('../types').GameBoardProps} GameBoardProps
+ * @typedef {import('../types').Puzzle} Puzzle
+ * @typedef {import('../types').MarkedCells} MarkedCells
+ * @typedef {import('../types').HighlightedCells} HighlightedCells
+ * @typedef {import('../types').CellPosition} CellPosition
+ * @typedef {import('../types').Suspect} Suspect
+ */
+
+/**
+ * Renders the game board with background image and cell grid.
+ *
+ * @param {GameBoardProps} props - Component props
+ * @param {Puzzle} props.puzzle - Puzzle data including layout and configuration
+ * @param {MarkedCells} props.markedCells - X mark state
+ * @param {CellPosition|null} props.selectedCell - Currently selected cell
+ * @param {function(number, number): void} props.onCellClick - Left click handler
+ * @param {function(number, number): void} props.onCellRightClick - Right click handler
+ * @param {function(number, number): Suspect|null} props.getSuspectAt - Function to get suspect at position
+ * @param {HighlightedCells} [props.errorCells] - Error highlight state
+ * @param {HighlightedCells} [props.hintCells] - Hint highlight state
+ * @returns {JSX.Element}
+ */
 function GameBoard({
   puzzle,
   markedCells,
