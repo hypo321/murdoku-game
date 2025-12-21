@@ -102,7 +102,8 @@ murdoku-game/
 │   │   ├── useHints.js         # Hint generation hook
 │   │   └── useValidation.js    # Validation hook
 │   └── utils/
-│       ├── hintGenerator.js    # Hint system logic
+│       ├── hintGenerator.js    # Hint system entry point (re-exports)
+│       ├── hintInterpreter.js  # Generic hint interpreter
 │       └── validation.js       # State validation utilities
 ├── public/
 ├── package.json
@@ -497,13 +498,11 @@ Renders suspect information cards with:
 
 ### Features
 
-1. **Puzzle-specific hint generators**: Create separate hint files for each puzzle:
-   ```
-   utils/hints/
-   ├── index.js
-   ├── backyard-garden-easy.js
-   └── horse-track-hard.js
-   ```
+1. ~~**Puzzle-specific hint generators**~~: ✅ Hints are now stored as data alongside each puzzle:
+   - Generic `hintInterpreter.js` processes hint data from puzzle files
+   - Each puzzle defines a `hints` array with structured hint steps
+   - Hint data structure supports: cell types, rooms, adjacency, marking suggestions
+   - See `backyard-garden-easy.js` for example hint definitions
 
 2. **Difficulty progression**: Track solved puzzles and unlock harder ones.
 

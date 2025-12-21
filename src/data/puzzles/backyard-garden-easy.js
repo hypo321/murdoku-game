@@ -211,6 +211,130 @@ const puzzle = {
     holden: { row: 1, col: 3 },
     violet: { row: 3, col: 7 },
   },
+
+  /**
+   * Hint data for the puzzle solver.
+   * Each hint step defines:
+   * - suspect: The suspect this hint helps place
+   * - order: Priority order (lower = earlier)
+   * - prerequisites: Suspects that must be placed first
+   * - target: Criteria for finding target cells
+   * - messages: Hint text for single/multiple cell scenarios
+   * - markingHint: Optional hint for suggesting X marks
+   */
+  hints: [
+    {
+      suspect: 'elyse',
+      order: 1,
+      prerequisites: [],
+      target: {
+        type: 'cellType',
+        cellType: 'chair',
+        room: 'livingRoom',
+      },
+      messages: {
+        single: `💡 Elyse must be sitting in a chair, and Aaron's clue says they're both in the Living Room. There's only one chair in the Living Room!`,
+        multiple: `💡 Elyse must be sitting in a chair. Aaron's clue says they're both in the Living Room. Look for chairs there.`,
+      },
+    },
+    {
+      suspect: 'aaron',
+      order: 2,
+      prerequisites: ['elyse'],
+      target: { type: 'room', room: 'livingRoom' },
+      messages: {
+        single: `💡 Aaron was with Elyse in the Living Room. There's only one spot left for him!`,
+        multiple: `💡 Aaron was with Elyse in the Living Room. Look for available spots there.`,
+      },
+    },
+    {
+      suspect: 'franklin',
+      order: 3,
+      prerequisites: ['elyse', 'aaron'],
+      target: { type: 'cellType', cellType: 'carpet' },
+      messages: {
+        single: `💡 Franklin was on a carpet. There's only one carpet cell available!`,
+        multiple: `💡 Franklin was on a carpet. These carpet cells are still available.`,
+      },
+    },
+    {
+      suspect: 'bruce',
+      order: 4,
+      prerequisites: ['franklin'],
+      target: { type: 'room', room: 'shed' },
+      messages: {
+        single: `💡 Bruce was in the Shed. There's only one spot available!`,
+        multiple: `💡 Bruce was in the Shed. These cells are available.`,
+      },
+      markingHint: {
+        condition: 'sameRow',
+        message: `💡 Bruce must be in the Shed. Both remaining Shed cells are in the same row - you can mark X on all other cells in that row!`,
+      },
+      // Skip to Denise hint when marking is done but 2 cells remain
+      skipIfMoreThan: 1,
+    },
+    {
+      suspect: 'denise',
+      order: 5,
+      prerequisites: ['franklin'],
+      target: { type: 'rooms', rooms: ['bedroom', 'sunroom'] },
+      messages: {
+        single: `💡 Denise was in the Bedroom or Sunroom. There's only one spot left!`,
+        multiple: `💡 Denise was in the Bedroom or the Sunroom. These cells are available.`,
+        roomBlocked: `💡 Denise was in the Bedroom or Sunroom. The {blockedRooms} is fully blocked, so she must be in the {availableRoom}!`,
+      },
+    },
+    {
+      suspect: 'bruce',
+      order: 6,
+      prerequisites: ['denise'],
+      target: { type: 'room', room: 'shed' },
+      messages: {
+        single: `💡 Bruce was in the Shed. Now there's only one spot left!`,
+        multiple: `💡 Bruce was in the Shed. These cells are available.`,
+      },
+    },
+    {
+      suspect: 'carissa',
+      order: 7,
+      prerequisites: ['bruce'],
+      target: { type: 'adjacentTo', cellType: 'tree' },
+      messages: {
+        single: `💡 Carissa was beside a tree. There's only one spot adjacent to a tree!`,
+        multiple: `💡 Carissa was beside a tree. These cells are adjacent to trees.`,
+      },
+    },
+    {
+      suspect: 'holden',
+      order: 8,
+      prerequisites: ['carissa'],
+      target: { type: 'room', room: 'pond' },
+      messages: {
+        single: `💡 Holden was alone. He can't be in the Garden (Gilbert will be there) or the Backyard (Carissa is there). The only remaining isolated cell is in the Pond area!`,
+        multiple: `💡 Holden was alone. He needs a cell where no one else in the same room could be adjacent. Consider the Pond area.`,
+      },
+    },
+    {
+      suspect: 'gilbert',
+      order: 9,
+      prerequisites: ['holden'],
+      target: { type: 'room', room: 'garden' },
+      messages: {
+        single: `💡 Gilbert was in the Garden. There's only one spot left!`,
+        multiple: `💡 Gilbert was in the Garden. These cells are available.`,
+      },
+    },
+    {
+      suspect: 'violet',
+      order: 10,
+      prerequisites: ['gilbert'],
+      target: { type: 'any' },
+      messages: {
+        single: `💡 Violet goes in the last remaining cell. She was alone with the murderer - check who else is in that room!`,
+        multiple: `💡 Violet was alone with the murderer. Place her in the remaining cell.`,
+      },
+    },
+  ],
 };
 
 export default puzzle;

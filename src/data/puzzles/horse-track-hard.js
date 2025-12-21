@@ -307,6 +307,165 @@ const puzzle = {
     kathryn: { row: 1, col: 2 },
     veronica: { row: 11, col: 7 },
   },
+
+  /**
+   * Hint data for the puzzle solver.
+   * This is a hard puzzle with complex deductions.
+   */
+  hints: [
+    // Step 1: Ella and Ignacia must be in Stables (last column)
+    // E's clue: first or last column. I's clue: alone with E, not on carpet.
+    // If E in first column, K would be forced to R2 VIP and J to R2 beside shelf (impossible).
+    // So E must be in last column. I can't be on carpet, so both in Stables.
+    {
+      suspect: 'ignacia',
+      order: 1,
+      prerequisites: [],
+      target: { type: 'room', room: 'stables' },
+      messages: {
+        single: `💡 Ignacia was alone with Ella and can't be on a carpet. Through elimination, they must be in the Stables. There's only one spot!`,
+        multiple: `💡 Ignacia was alone with Ella and can't be on a carpet. If Ella were in the first column, it would force impossible placements for Kathryn and James. So Ella must be in the last column, and Ignacia must be with her in the Stables (not on carpet or chair).`,
+      },
+      markingHint: {
+        condition: 'sameCol',
+        message: `💡 Ignacia and Ella must be in the Stables (last column). Mark X on all other cells in column 12!`,
+      },
+      skipIfMoreThan: 1,
+    },
+    {
+      suspect: 'ella',
+      order: 2,
+      prerequisites: ['ignacia'],
+      target: { type: 'room', room: 'stables' },
+      messages: {
+        single: `💡 Ella was with Ignacia in the Stables. There's only one spot left!`,
+        multiple: `💡 Ella was with Ignacia. She must be in the first or last column - and since Ignacia is in the Stables, Ella must be there too.`,
+      },
+    },
+
+    // Step 2: K, F, I, E occupy R1-R4 (rows 0-3). Block Horse Track in R4.
+    {
+      suspect: 'kathryn',
+      order: 3,
+      prerequisites: ['ella'],
+      target: { type: 'room', room: 'vipArea' },
+      messages: {
+        single: `💡 Kathryn was in the VIP Area. There's only one spot left!`,
+        multiple: `💡 Kathryn was in the VIP Area. With Ella and Ignacia placed, look for available spots there.`,
+      },
+    },
+
+    // Step 3: Jockeys are on horses (on the track in R5, R7, R8, R9 = rows 4, 6, 7, 8)
+    // This isolates a jockey in R7C2 (row 6, col 1)
+    {
+      suspect: 'blake',
+      order: 4,
+      prerequisites: ['kathryn'],
+      target: { type: 'cellType', cellType: 'horse' },
+      messages: {
+        single: `💡 The jockeys (Al, Blake, Claire, Dale) were on horses. Blake was ahead of Claire. There's only one horse spot that works!`,
+        multiple: `💡 The four jockeys were racing on horses. With K, F, I, E occupying the top rows, look for an isolated horse position. One jockey must be at R7C2!`,
+      },
+      skipIfMoreThan: 1,
+    },
+
+    // Step 4: James beside shelf
+    {
+      suspect: 'james',
+      order: 5,
+      prerequisites: ['kathryn'],
+      target: { type: 'adjacentTo', cellType: 'shelf' },
+      messages: {
+        single: `💡 James was beside a shelf. There's only one spot adjacent to a shelf!`,
+        multiple: `💡 James was beside a shelf. With the top rows blocked by K, F, I, E, look for cells adjacent to shelves.`,
+      },
+    },
+
+    // Step 5: Claire on horse in R5 (row 4)
+    {
+      suspect: 'claire',
+      order: 6,
+      prerequisites: ['james', 'blake'],
+      target: { type: 'cellType', cellType: 'horse' },
+      messages: {
+        single: `💡 Claire was a jockey on a horse. She was ahead of Dale. There's only one spot!`,
+        multiple: `💡 Claire was a jockey on a horse, ahead of Dale but behind Blake. Look for available horse positions.`,
+      },
+      skipIfMoreThan: 1,
+    },
+
+    // Step 6: Glenda beside TV
+    {
+      suspect: 'glenda',
+      order: 7,
+      prerequisites: ['claire'],
+      target: { type: 'adjacentTo', cellType: 'tv' },
+      messages: {
+        single: `💡 Glenda was beside a TV. There's only one spot!`,
+        multiple: `💡 Glenda was beside a TV. She's the only non-jockey who can be in R6 (since Veronica needs to be alone with the murderer elsewhere).`,
+      },
+    },
+
+    // Step 7: Frank in Jockey's Room (not on chair per Hartley's clue)
+    {
+      suspect: 'frank',
+      order: 8,
+      prerequisites: ['glenda'],
+      target: { type: 'room', room: 'jockeysRoom' },
+      messages: {
+        single: `💡 Frank was in the Jockey's Room. There's only one spot!`,
+        multiple: `💡 Frank was in the Jockey's Room. Hartley's clue says he was the ONLY person sitting in a chair, so Frank can't be on a chair.`,
+      },
+    },
+
+    // Step 8: Hartley on the last chair
+    {
+      suspect: 'hartley',
+      order: 9,
+      prerequisites: ['frank'],
+      target: { type: 'cellType', cellType: 'chair' },
+      messages: {
+        single: `💡 Hartley was the only person sitting in a chair. There's only one chair left!`,
+        multiple: `💡 Hartley was the only person sitting in a chair. Look for available chair cells.`,
+      },
+    },
+
+    // Step 9: Al on horse (ahead of Blake)
+    {
+      suspect: 'al',
+      order: 10,
+      prerequisites: ['hartley'],
+      target: { type: 'cellType', cellType: 'horse' },
+      messages: {
+        single: `💡 Al was a jockey on a horse, ahead of Blake. There's only one spot!`,
+        multiple: `💡 Al was a jockey ahead of Blake. Look for horse positions that are "ahead" (lower row number means further ahead in the race).`,
+      },
+    },
+
+    // Step 10: Dale on horse (behind everyone)
+    {
+      suspect: 'dale',
+      order: 11,
+      prerequisites: ['al'],
+      target: { type: 'cellType', cellType: 'horse' },
+      messages: {
+        single: `💡 Dale was the last jockey, behind Al, Blake, and Claire. There's only one horse left!`,
+        multiple: `💡 Dale was behind all other jockeys. Look for remaining horse positions.`,
+      },
+    },
+
+    // Step 11: Veronica alone with murderer (Hartley)
+    {
+      suspect: 'veronica',
+      order: 12,
+      prerequisites: ['dale'],
+      target: { type: 'any' },
+      messages: {
+        single: `💡 Veronica was alone with the murderer. She must be in the same room as Hartley - check the Stands! The murderer is Hartley!`,
+        multiple: `💡 Veronica was alone with the murderer. Look for a cell in the same room as one of the placed suspects...`,
+      },
+    },
+  ],
 };
 
 export default puzzle;
