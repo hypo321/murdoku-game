@@ -108,10 +108,11 @@ function isSuspectPlaced(suspectId, placements) {
   return Object.values(placements).includes(suspectId);
 }
 
-// Helper: Get cells that could be marked as X (cells in same row as shed cells but not in shed)
+// Helper: Get cells that could be marked as X (cells in same row as target room but not in that room)
 function getCellsToMarkInRow(
   boardLayout,
   targetCells,
+  targetRoom,
   placements,
   markedCells
 ) {
@@ -122,12 +123,10 @@ function getCellsToMarkInRow(
     for (let col = 0; col < boardLayout[row].length; col++) {
       const cell = boardLayout[row][col];
       const key = `${row}-${col}`;
-      const isInTargetCells = targetCells.some(
-        (c) => c.row === row && c.col === col
-      );
 
+      // Exclude cells in the target room, non-occupiable cells, placed cells, and already marked cells
       if (
-        !isInTargetCells &&
+        cell.room !== targetRoom &&
         occupiableTypes.includes(cell.type) &&
         !placements[key] &&
         !markedCells[key]
@@ -274,6 +273,7 @@ export function generateHint(puzzle, placements, markedCells) {
         const cellsToMark = getCellsToMarkInRow(
           boardLayout,
           availableShedCells,
+          'shed',
           placements,
           markedCells
         );

@@ -323,6 +323,16 @@ function App() {
       }
       setHintCells(highlighted);
     }
+
+    // Auto-select the suspect if the hint is for placement (not marking X's)
+    if (hint.suspect && hint.action !== 'mark') {
+      const suspectToSelect = suspects.find(
+        (s) => s.id === hint.suspect
+      );
+      if (suspectToSelect) {
+        setSelectedSuspect(suspectToSelect);
+      }
+    }
   }
 
   function handleCheckSolution() {
