@@ -386,6 +386,21 @@ export function useGameState(puzzle) {
           newPlacements
         );
         setAutoMarks(newAutoMarks);
+
+        // Clear possibility marks for this suspect
+        setPossibilityMarks((prev) => {
+          const newMarks = {};
+          for (const [cellKey, suspectIds] of Object.entries(prev)) {
+            const filtered = suspectIds.filter(
+              (id) => id !== selectedSuspect.id
+            );
+            if (filtered.length > 0) {
+              newMarks[cellKey] = filtered;
+            }
+          }
+          return newMarks;
+        });
+
         setMessage(`${selectedSuspect.name} placed!`);
         setSelectedSuspect(null);
       } else {
