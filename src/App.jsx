@@ -60,6 +60,7 @@ function App() {
     isDragging: false,
     dragAction: null, // 'addMark', 'removeMark', 'addPossibility', 'removePossibility'
     lastCell: null, // Track last cell to avoid redundant calls with mousemove
+    clickHandled: false, // Prevent click from firing after mousedown/touch handled it
   });
 
   /**
@@ -84,9 +85,12 @@ function App() {
           return;
         }
         // No suspect selected and no existing suspect - drag to add/remove X marks
+        // Set flag to prevent click from also firing (for both mouse and touch)
+        dragStateRef.current.clickHandled = true;
         saveToHistory();
         if (hasManualMark(row, col)) {
           dragStateRef.current = {
+            ...dragStateRef.current,
             isDragging: true,
             dragAction: 'removeMark',
             lastCell: `${row}-${col}`,
@@ -94,6 +98,7 @@ function App() {
           removeManualMark(row, col);
         } else {
           dragStateRef.current = {
+            ...dragStateRef.current,
             isDragging: true,
             dragAction: 'addMark',
             lastCell: `${row}-${col}`,
@@ -206,6 +211,7 @@ function App() {
    */
   const handleDragEnd = useCallback(() => {
     dragStateRef.current = {
+      ...dragStateRef.current,
       isDragging: false,
       dragAction: null,
       lastCell: null,
@@ -214,12 +220,17 @@ function App() {
 
   /**
    * Wraps cell click to clear highlights first.
-   * Skips if we're in a drag operation (drag already handled by mousedown).
+   * Skips if we're in a drag operation or if touch already handled this.
    */
   const handleCellClick = useCallback(
     (row, col) => {
       // Skip if we just finished a drag operation
       if (dragStateRef.current.isDragging) return;
+      // Skip if mousedown/touch already handled this interaction
+      if (dragStateRef.current.clickHandled) {
+        dragStateRef.current.clickHandled = false;
+        return;
+      }
       gameHandleCellClick(row, col, clearHighlights);
     },
     [gameHandleCellClick, clearHighlights]
