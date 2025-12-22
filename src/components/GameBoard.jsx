@@ -15,6 +15,7 @@ import Cell from './Cell';
  * @param {GameBoardProps} props - Component props
  * @param {Puzzle} props.puzzle - Puzzle data including layout and configuration
  * @param {MarkedCells} props.markedCells - X mark state
+ * @param {Object.<string, string[]>} props.possibilityMarks - Possibility marks (cell key -> suspect IDs)
  * @param {CellPosition|null} props.selectedCell - Currently selected cell
  * @param {function(number, number): void} props.onCellClick - Left click handler
  * @param {function(number, number): void} props.onCellRightClick - Right click handler
@@ -26,6 +27,7 @@ import Cell from './Cell';
 function GameBoard({
   puzzle,
   markedCells,
+  possibilityMarks = {},
   selectedCell,
   onCellClick,
   onCellRightClick,
@@ -40,7 +42,23 @@ function GameBoard({
     cellSize,
     imageBorder,
     rooms,
+    suspects,
   } = puzzle;
+
+  /**
+   * Gets the suspect objects for a cell's possibility marks.
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   * @returns {Suspect[]} Array of suspect objects sorted alphabetically by name
+   */
+  function getPossibleSuspectsAt(row, col) {
+    const cellKey = `${row}-${col}`;
+    const suspectIds = possibilityMarks[cellKey] || [];
+    return suspectIds
+      .map((id) => suspects.find((s) => s.id === id))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   return (
     <div className="flex flex-col items-center">
@@ -99,6 +117,10 @@ function GameBoard({
                 const isHint =
                   hintCells[`${rowIndex}-${colIndex}`] || false;
                 const suspect = getSuspectAt(rowIndex, colIndex);
+                const possibleSuspects = getPossibleSuspectsAt(
+                  rowIndex,
+                  colIndex
+                );
 
                 return (
                   <Cell
@@ -111,6 +133,7 @@ function GameBoard({
                     isSelected={isSelected}
                     isError={isError}
                     isHint={isHint}
+                    possibleSuspects={possibleSuspects}
                     onCellClick={onCellClick}
                     onCellRightClick={onCellRightClick}
                     rooms={rooms}

@@ -23,6 +23,12 @@ import { createCellKey, parseCellKey, MESSAGES } from '../constants';
  */
 
 /**
+ * @typedef {Object.<string, string[]>} PossibilityMarks
+ * Maps cell keys to arrays of suspect IDs that could possibly occupy that cell.
+ * Used for tracking potential placements based on clue analysis.
+ */
+
+/**
  * Custom hook for managing game state including placements, marks, history, and selection.
  *
  * @param {Puzzle} puzzle - The current puzzle
@@ -37,6 +43,8 @@ export function useGameState(puzzle) {
   const [autoMarks, setAutoMarks] = useState({});
   /** @type {[ManualMarks, Function]} */
   const [manualMarks, setManualMarks] = useState({});
+  /** @type {[PossibilityMarks, Function]} */
+  const [possibilityMarks, setPossibilityMarks] = useState({});
   /** @type {[Suspect|null, Function]} */
   const [selectedSuspect, setSelectedSuspect] = useState(null);
   /** @type {[CellPosition|null, Function]} */
@@ -78,9 +86,12 @@ export function useGameState(puzzle) {
         placements: { ...placements },
         autoMarks: JSON.parse(JSON.stringify(autoMarks)),
         manualMarks: { ...manualMarks },
+        possibilityMarks: JSON.parse(
+          JSON.stringify(possibilityMarks)
+        ),
       },
     ]);
-  }, [placements, autoMarks, manualMarks]);
+  }, [placements, autoMarks, manualMarks, possibilityMarks]);
 
   /**
    * Undoes the last action.
@@ -94,6 +105,7 @@ export function useGameState(puzzle) {
     setPlacements(lastState.placements);
     setAutoMarks(lastState.autoMarks);
     setManualMarks(lastState.manualMarks);
+    setPossibilityMarks(lastState.possibilityMarks || {});
     setHistory((prev) => prev.slice(0, -1));
     setMessage(MESSAGES.UNDO_SUCCESS);
   }, [history]);
@@ -404,7 +416,9 @@ export function useGameState(puzzle) {
   );
 
   /**
-   * Handles right-click on a cell (toggle manual X mark).
+   * Handles right-click on a cell.
+   * If a suspect is selected, toggles that suspect's possibility mark on the cell.
+   * Otherwise, toggles the manual X mark.
    *
    * @param {number} row - Row index
    * @param {number} col - Column index
@@ -423,6 +437,35 @@ export function useGameState(puzzle) {
         return;
       }
 
+      // If a suspect is selected, toggle their possibility mark
+      if (selectedSuspect) {
+        saveToHistory();
+        setPossibilityMarks((prev) => {
+          const newMarks = { ...prev };
+          const currentMarks = newMarks[cellKey] || [];
+
+          if (currentMarks.includes(selectedSuspect.id)) {
+            // Remove the suspect from this cell's possibility marks
+            newMarks[cellKey] = currentMarks.filter(
+              (id) => id !== selectedSuspect.id
+            );
+            if (newMarks[cellKey].length === 0) {
+              delete newMarks[cellKey];
+            }
+          } else {
+            // Add the suspect to this cell's possibility marks
+            newMarks[cellKey] = [
+              ...currentMarks,
+              selectedSuspect.id,
+            ].sort();
+          }
+          return newMarks;
+        });
+        return;
+      }
+
+      // No suspect selected - toggle manual X mark
+      saveToHistory();
       setManualMarks((prev) => {
         const newMarks = { ...prev };
         if (newMarks[cellKey]) {
@@ -433,7 +476,7 @@ export function useGameState(puzzle) {
         return newMarks;
       });
     },
-    [getSuspectAt]
+    [getSuspectAt, selectedSuspect, saveToHistory]
   );
 
   /**
@@ -443,6 +486,7 @@ export function useGameState(puzzle) {
     setPlacements({});
     setAutoMarks({});
     setManualMarks({});
+    setPossibilityMarks({});
     setSelectedSuspect(null);
     setSelectedCell(null);
     setHistory([]);
@@ -472,6 +516,7 @@ export function useGameState(puzzle) {
     // State
     placements,
     markedCells,
+    possibilityMarks,
     selectedSuspect,
     selectedCell,
     message,

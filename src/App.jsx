@@ -28,6 +28,7 @@ function App() {
   const {
     placements,
     markedCells,
+    possibilityMarks,
     selectedSuspect,
     selectedCell,
     message,
@@ -172,6 +173,7 @@ function App() {
             <GameBoard
               puzzle={puzzle}
               markedCells={markedCells}
+              possibilityMarks={possibilityMarks}
               selectedCell={selectedCell}
               onCellClick={handleCellClick}
               onCellRightClick={handleCellRightClick}
@@ -243,7 +245,11 @@ function App() {
               </li>
               <li>
                 • <strong>Right-click</strong> a cell to mark/unmark
-                it as eliminated
+                it as eliminated (X)
+              </li>
+              <li>
+                • <strong>Right-click with suspect selected</strong>{' '}
+                to mark possible locations (shows initial)
               </li>
               <li>
                 • <strong>Rule:</strong> One person per row and column

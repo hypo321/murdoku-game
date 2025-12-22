@@ -27,8 +27,17 @@ const cellTypeNames = {
 };
 
 /**
+ * Gets the initial (first letter) of a suspect's name.
+ * @param {Suspect} suspect - The suspect
+ * @returns {string} The initial
+ */
+function getSuspectInitial(suspect) {
+  return suspect.name.charAt(0).toUpperCase();
+}
+
+/**
  * Renders an individual cell on the game board.
- * Displays suspect avatars, X marks, and various highlight states.
+ * Displays suspect avatars, X marks, possibility initials, and various highlight states.
  *
  * @param {CellProps} props - Component props
  * @param {CellData} props.cell - Cell data containing room and type
@@ -39,6 +48,7 @@ const cellTypeNames = {
  * @param {boolean} props.isSelected - Whether cell is selected
  * @param {boolean} props.isError - Whether cell has error highlight
  * @param {boolean} props.isHint - Whether cell has hint highlight
+ * @param {string[]} props.possibleSuspects - Array of suspects that could possibly be here
  * @param {function(number, number): void} props.onCellClick - Left click handler
  * @param {function(number, number): void} props.onCellRightClick - Right click handler
  * @param {RoomMap} props.rooms - Room definitions
@@ -54,6 +64,7 @@ function Cell({
   isSelected,
   isError,
   isHint,
+  possibleSuspects = [],
   onCellClick,
   onCellRightClick,
   rooms,
@@ -134,6 +145,68 @@ function Cell({
           >
             ✕
           </span>
+        </div>
+      )}
+
+      {/* Possibility marks - show suspect initials in corners (hidden when cell has X mark) */}
+      {!hasSuspect && !isMarked && possibleSuspects.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Top left - first suspect */}
+          {possibleSuspects[0] && (
+            <span
+              className="absolute top-0 left-0.5 text-xs font-bold"
+              style={{
+                color: possibleSuspects[0].color,
+                textShadow: '0px 0px 2px white, 0px 0px 2px white',
+                fontSize: cellSize < 40 ? '8px' : '10px',
+                lineHeight: 1,
+              }}
+            >
+              {getSuspectInitial(possibleSuspects[0])}
+            </span>
+          )}
+          {/* Top right - second suspect */}
+          {possibleSuspects[1] && (
+            <span
+              className="absolute top-0 right-0.5 text-xs font-bold"
+              style={{
+                color: possibleSuspects[1].color,
+                textShadow: '0px 0px 2px white, 0px 0px 2px white',
+                fontSize: cellSize < 40 ? '8px' : '10px',
+                lineHeight: 1,
+              }}
+            >
+              {getSuspectInitial(possibleSuspects[1])}
+            </span>
+          )}
+          {/* Bottom left - third suspect */}
+          {possibleSuspects[2] && (
+            <span
+              className="absolute bottom-0 left-0.5 text-xs font-bold"
+              style={{
+                color: possibleSuspects[2].color,
+                textShadow: '0px 0px 2px white, 0px 0px 2px white',
+                fontSize: cellSize < 40 ? '8px' : '10px',
+                lineHeight: 1,
+              }}
+            >
+              {getSuspectInitial(possibleSuspects[2])}
+            </span>
+          )}
+          {/* Bottom right - fourth suspect */}
+          {possibleSuspects[3] && (
+            <span
+              className="absolute bottom-0 right-0.5 text-xs font-bold"
+              style={{
+                color: possibleSuspects[3].color,
+                textShadow: '0px 0px 2px white, 0px 0px 2px white',
+                fontSize: cellSize < 40 ? '8px' : '10px',
+                lineHeight: 1,
+              }}
+            >
+              {getSuspectInitial(possibleSuspects[3])}
+            </span>
+          )}
         </div>
       )}
     </div>
