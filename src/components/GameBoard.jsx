@@ -102,6 +102,25 @@ function GameBoard({
           <div
             onMouseUp={onDragEnd}
             onMouseLeave={onDragEnd}
+            onTouchMove={(e) => {
+              e.preventDefault();
+              const touch = e.touches[0];
+              const element = document.elementFromPoint(
+                touch.clientX,
+                touch.clientY
+              );
+              if (element) {
+                const row = element.dataset?.row;
+                const col = element.dataset?.col;
+                if (row !== undefined && col !== undefined) {
+                  onCellMouseEnter(
+                    parseInt(row, 10),
+                    parseInt(col, 10)
+                  );
+                }
+              }
+            }}
+            onTouchEnd={onDragEnd}
             style={{
               position: 'absolute',
               top: imageBorder.top,

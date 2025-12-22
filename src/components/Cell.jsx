@@ -109,6 +109,12 @@ function Cell({
     onCellMouseEnter(row, col);
   }
 
+  function handleTouchStart(e) {
+    e.preventDefault();
+    // Touch acts like left-click (button 0)
+    onCellMouseDown(row, col, 0);
+  }
+
   return (
     <div
       className={`
@@ -135,11 +141,15 @@ function Cell({
         minWidth: `${cellSize}px`,
         minHeight: `${cellSize}px`,
         zIndex: 1,
+        touchAction: 'none', // Prevent scrolling during touch drag
       }}
+      data-row={row}
+      data-col={col}
       onClick={handleClick}
       onContextMenu={handleRightClick}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
       title={getTooltip()}
     >
       {hasSuspect && (
