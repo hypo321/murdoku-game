@@ -24,6 +24,7 @@ const cellTypeNames = {
   [cellTypes.HORSE]: 'Horse',
   [cellTypes.PLANT]: 'Plant',
   [cellTypes.TRACK]: 'Track',
+  [cellTypes.FINISHING_LINE]: 'Finishing Line',
 };
 
 /**

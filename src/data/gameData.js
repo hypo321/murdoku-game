@@ -15,6 +15,7 @@ export const cellTypes = {
   HORSE: 'horse',
   PLANT: 'plant',
   TRACK: 'track',
+  FINISHING_LINE: 'finishingLine',
 };
 
 export const occupiableTypes = [

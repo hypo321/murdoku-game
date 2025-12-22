@@ -224,7 +224,7 @@ const puzzle = {
       { room: 'horseTrack', type: cellTypes.HORSE },
       { room: 'horseTrack', type: cellTypes.HORSE },
       { room: 'horseTrack', type: cellTypes.TRACK },
-      { room: 'horseTrack', type: cellTypes.TRACK },
+      { room: 'horseTrack', type: cellTypes.FINISHING_LINE },
       { room: 'horseTrack', type: cellTypes.TRACK },
       { room: 'horseTrack', type: cellTypes.TRACK },
       { room: 'horseTrack', type: cellTypes.TRACK },
@@ -240,7 +240,7 @@ const puzzle = {
       { room: 'horseTrack', type: cellTypes.TRACK },
       { room: 'horseTrack', type: cellTypes.HORSE },
       { room: 'horseTrack', type: cellTypes.TRACK },
-      { room: 'horseTrack', type: cellTypes.TRACK },
+      { room: 'horseTrack', type: cellTypes.FINISHING_LINE },
       { room: 'horseTrack', type: cellTypes.TRACK },
       { room: 'horseTrack', type: cellTypes.TRACK },
       { room: 'horseTrack', type: cellTypes.HORSE },
@@ -443,7 +443,7 @@ const puzzle = {
       target: { type: 'cellType', cellType: 'horse' },
       messages: {
         single: `💡 Al was a jockey on a horse, ahead of Blake. There's only one spot!`,
-        multiple: `💡 Al was a jockey ahead of Blake. Look for horse positions that are "ahead" (lower row number means further ahead in the race).`,
+        multiple: `💡 Al was a jockey ahead of Blake. The track runs counter-clockwise from the finishing line - horses closer to R9C6 are in the lead.`,
       },
     },
 
