@@ -61,6 +61,7 @@ function App() {
     isDragging: false,
     dragAction: null, // 'addMark', 'removeMark', 'addPossibility', 'removePossibility'
     lastCell: null, // Track last cell to avoid redundant calls with mousemove
+    lastActionTime: 0, // Timestamp to prevent click from firing after mousedown/touch
   });
 
   /**
@@ -85,6 +86,7 @@ function App() {
           return;
         }
         // No suspect selected and no existing suspect - drag to add/remove X marks
+        dragStateRef.current.lastActionTime = Date.now();
         saveToHistory();
         if (hasManualMark(row, col)) {
           dragStateRef.current = {
@@ -216,6 +218,98 @@ function App() {
     };
   }, []);
 
+  // Global touchmove handler with debug logging
+  useEffect(() => {
+    const handleGlobalTouchMove = (e) => {
+      console.log(
+        '[TOUCHMOVE] isDragging:',
+        dragStateRef.current.isDragging,
+        'dragAction:',
+        dragStateRef.current.dragAction
+      );
+      if (!dragStateRef.current.isDragging) return;
+
+      const touch = e.touches[0];
+      console.log(
+        '[TOUCHMOVE] touch coords:',
+        touch.clientX,
+        touch.clientY
+      );
+      let target = document.elementFromPoint(
+        touch.clientX,
+        touch.clientY
+      );
+      console.log(
+        '[TOUCHMOVE] initial target:',
+        target?.tagName,
+        target?.className?.substring?.(0, 50)
+      );
+
+      while (target && target.dataset?.row === undefined) {
+        target = target.parentElement;
+      }
+      console.log(
+        '[TOUCHMOVE] final target row:',
+        target?.dataset?.row,
+        'col:',
+        target?.dataset?.col
+      );
+
+      if (target) {
+        const row = target.dataset?.row;
+        const col = target.dataset?.col;
+        if (row !== undefined && col !== undefined) {
+          const cellKey = `${row}-${col}`;
+          if (dragStateRef.current.lastCell === cellKey) return;
+          dragStateRef.current.lastCell = cellKey;
+
+          const rowNum = parseInt(row, 10);
+          const colNum = parseInt(col, 10);
+          const existingSuspect = getSuspectAt(rowNum, colNum);
+          if (existingSuspect) return;
+
+          console.log(
+            '[TOUCHMOVE] executing:',
+            dragStateRef.current.dragAction,
+            'on',
+            rowNum,
+            colNum
+          );
+          const { dragAction } = dragStateRef.current;
+          switch (dragAction) {
+            case 'addMark':
+              addManualMark(rowNum, colNum);
+              break;
+            case 'removeMark':
+              removeManualMark(rowNum, colNum);
+              break;
+            case 'addPossibility':
+              addPossibilityMark(rowNum, colNum);
+              break;
+            case 'removePossibility':
+              removePossibilityMark(rowNum, colNum);
+              break;
+          }
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', handleGlobalTouchMove, {
+      passive: true,
+    });
+    return () =>
+      document.removeEventListener(
+        'touchmove',
+        handleGlobalTouchMove
+      );
+  }, [
+    getSuspectAt,
+    addManualMark,
+    removeManualMark,
+    addPossibilityMark,
+    removePossibilityMark,
+  ]);
+
   /**
    * Wraps cell click to clear highlights first.
    * X marks are now handled by mousedown/touchstart, so click only handles:
@@ -224,6 +318,12 @@ function App() {
    */
   const handleCellClick = useCallback(
     (row, col) => {
+      // Skip if mousedown/touchstart just handled this (within 500ms)
+      // This prevents touch devices from double-firing (touchstart + click)
+      if (Date.now() - dragStateRef.current.lastActionTime < 500) {
+        return;
+      }
+
       const existingSuspect = getSuspectAt(row, col);
 
       // If no suspect selected and no existing suspect, mousedown already handled X marks

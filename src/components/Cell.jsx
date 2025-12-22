@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { cellTypes, occupiableTypes } from '../data/gameData';
 
 /**
@@ -75,9 +76,58 @@ function Cell({
   rooms,
   cellSize,
 }) {
+  const cellRef = useRef(null);
   const roomData = rooms[cell.room];
   const isOccupiable = occupiableTypes.includes(cell.type);
   const hasSuspect = suspect !== null;
+
+  // Use ref-based event listeners for touch with { passive: false }
+  // This allows preventDefault() to work and prevent click from firing
+  useEffect(() => {
+    const element = cellRef.current;
+    if (!element) return;
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      onCellMouseDown(row, col, 0);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      // Touch events stay on the original element, so we need to find
+      // which cell is actually under the touch point
+      const touch = e.touches[0];
+      let target = document.elementFromPoint(
+        touch.clientX,
+        touch.clientY
+      );
+      // Traverse up to find element with data-row/data-col
+      while (target && target.dataset?.row === undefined) {
+        target = target.parentElement;
+      }
+      if (target) {
+        const targetRow = target.dataset?.row;
+        const targetCol = target.dataset?.col;
+        if (targetRow !== undefined && targetCol !== undefined) {
+          onCellMouseEnter(
+            parseInt(targetRow, 10),
+            parseInt(targetCol, 10)
+          );
+        }
+      }
+    };
+
+    element.addEventListener('touchstart', handleTouchStart, {
+      passive: false,
+    });
+    element.addEventListener('touchmove', handleTouchMove, {
+      passive: false,
+    });
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [row, col, onCellMouseDown, onCellMouseEnter]);
 
   function getTooltip() {
     if (hasSuspect) {
@@ -109,14 +159,9 @@ function Cell({
     onCellMouseEnter(row, col);
   }
 
-  function handleTouchStart(e) {
-    e.preventDefault();
-    // Touch acts like left-click (button 0)
-    onCellMouseDown(row, col, 0);
-  }
-
   return (
     <div
+      ref={cellRef}
       className={`
 				relative border flex items-center justify-center
 				cursor-pointer transition-all duration-200 select-none
@@ -141,7 +186,7 @@ function Cell({
         minWidth: `${cellSize}px`,
         minHeight: `${cellSize}px`,
         zIndex: 1,
-        touchAction: 'none', // Prevent scrolling during touch drag
+        touchAction: 'none',
       }}
       data-row={row}
       data-col={col}
@@ -149,7 +194,6 @@ function Cell({
       onContextMenu={handleRightClick}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
-      onTouchStart={handleTouchStart}
       title={getTooltip()}
     >
       {hasSuspect && (
@@ -162,11 +206,15 @@ function Cell({
       )}
 
       {isMarked && !hasSuspect && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ pointerEvents: 'none' }}
+        >
           <span
             className="text-red-600 text-4xl font-bold drop-shadow-lg"
             style={{
               textShadow: '1px 1px 2px white, -1px -1px 2px white',
+              pointerEvents: 'none',
             }}
           >
             ✕

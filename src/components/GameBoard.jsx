@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import Cell from './Cell';
 
 /**
@@ -41,6 +42,7 @@ function GameBoard({
   errorCells = {},
   hintCells = {},
 }) {
+  const gridRef = useRef(null);
   const {
     boardLayout,
     backgroundImage,
@@ -50,6 +52,39 @@ function GameBoard({
     rooms,
     suspects,
   } = puzzle;
+
+  // Use ref-based event listener for touchmove with { passive: false }
+  useEffect(() => {
+    const element = gridRef.current;
+    if (!element) return;
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      let target = document.elementFromPoint(
+        touch.clientX,
+        touch.clientY
+      );
+      // Traverse up to find element with data-row/data-col
+      while (target && target.dataset?.row === undefined) {
+        target = target.parentElement;
+      }
+      if (target) {
+        const row = target.dataset?.row;
+        const col = target.dataset?.col;
+        if (row !== undefined && col !== undefined) {
+          onCellMouseEnter(parseInt(row, 10), parseInt(col, 10));
+        }
+      }
+    };
+
+    element.addEventListener('touchmove', handleTouchMove, {
+      passive: false,
+    });
+    return () => {
+      element.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [onCellMouseEnter]);
 
   /**
    * Gets the suspect objects for a cell's possibility marks.
@@ -100,26 +135,9 @@ function GameBoard({
             }}
           />
           <div
+            ref={gridRef}
             onMouseUp={onDragEnd}
             onMouseLeave={onDragEnd}
-            onTouchMove={(e) => {
-              e.preventDefault();
-              const touch = e.touches[0];
-              const element = document.elementFromPoint(
-                touch.clientX,
-                touch.clientY
-              );
-              if (element) {
-                const row = element.dataset?.row;
-                const col = element.dataset?.col;
-                if (row !== undefined && col !== undefined) {
-                  onCellMouseEnter(
-                    parseInt(row, 10),
-                    parseInt(col, 10)
-                  );
-                }
-              }
-            }}
             onTouchEnd={onDragEnd}
             style={{
               position: 'absolute',
