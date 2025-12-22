@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
 import {
@@ -107,6 +107,43 @@ function App() {
   }
 
   /**
+   * Gets the congratulations or failure message based on solution result.
+   */
+  function getSolutionMessage(result) {
+    if (result.isComplete) {
+      const murdererSuspect = suspects.find(
+        (s) => s.id === puzzle.murderer
+      );
+      const victimSuspect = suspects.find(
+        (s) => s.id === puzzle.victim
+      );
+      const roomName =
+        puzzle.rooms[puzzle.crimeRoom]?.name || puzzle.crimeRoom;
+
+      return `🎉 Congratulations, detective! You have caught the killer ${
+        murdererSuspect?.name || 'Unknown'
+      } who was alone with ${
+        victimSuspect?.name || 'the victim'
+      } in the ${roomName}!`;
+    } else {
+      const wrongCount = totalSuspects - result.correctCount;
+      return `❌ Not quite right! ${wrongCount} suspect${
+        wrongCount > 1 ? 's are' : ' is'
+      } in the wrong position. Keep trying!`;
+    }
+  }
+
+  /**
+   * Auto-check solution when all suspects are placed.
+   */
+  useEffect(() => {
+    if (placedCount === totalSuspects && totalSuspects > 0) {
+      const result = checkCurrentSolution(placements);
+      setMessage(getSolutionMessage(result));
+    }
+  }, [placedCount, totalSuspects, placements]);
+
+  /**
    * Checks the current solution and displays the result.
    */
   function handleCheckSolution() {
@@ -119,19 +156,7 @@ function App() {
       return;
     }
 
-    if (result.isComplete) {
-      setMessage(
-        '🎉 Congratulations! All suspects are correctly placed! You solved the Murdoku!'
-      );
-    } else {
-      setMessage(
-        `${
-          result.correctCount
-        }/${totalSuspects} correct. Wrong placements: ${result.wrongNames.join(
-          ', '
-        )}`
-      );
-    }
+    setMessage(getSolutionMessage(result));
   }
 
   return (

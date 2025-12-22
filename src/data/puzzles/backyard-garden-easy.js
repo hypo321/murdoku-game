@@ -132,7 +132,7 @@ const puzzle = {
       { room: 'backyard', type: cellTypes.EMPTY },
       { room: 'backyard', type: cellTypes.EMPTY },
       { room: 'backyard', type: cellTypes.EMPTY },
-      { room: 'backyard', type: cellTypes.TREE },
+      { room: 'backyard', type: cellTypes.EMPTY },
       { room: 'backyard', type: cellTypes.EMPTY },
       { room: 'backyard', type: cellTypes.FLOWERS },
       { room: 'backyard', type: cellTypes.EMPTY },
@@ -211,6 +211,11 @@ const puzzle = {
     holden: { row: 1, col: 3 },
     violet: { row: 3, col: 7 },
   },
+
+  // Murder mystery solution metadata
+  victim: 'violet',
+  murderer: 'carissa',
+  crimeRoom: 'backyard',
 
   /**
    * Hint data for the puzzle solver.

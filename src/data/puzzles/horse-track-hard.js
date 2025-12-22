@@ -308,6 +308,11 @@ const puzzle = {
     veronica: { row: 11, col: 7 },
   },
 
+  // Murder mystery solution metadata
+  victim: 'veronica',
+  murderer: 'hartley',
+  crimeRoom: 'stands',
+
   /**
    * Hint data for the puzzle solver.
    * This is a hard puzzle with complex deductions.
