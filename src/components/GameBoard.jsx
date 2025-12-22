@@ -19,6 +19,9 @@ import Cell from './Cell';
  * @param {CellPosition|null} props.selectedCell - Currently selected cell
  * @param {function(number, number): void} props.onCellClick - Left click handler
  * @param {function(number, number): void} props.onCellRightClick - Right click handler
+ * @param {function(number, number): void} props.onCellMouseDown - Mouse down handler
+ * @param {function(number, number): void} props.onCellMouseEnter - Mouse enter handler
+ * @param {function(): void} props.onDragEnd - Drag end handler
  * @param {function(number, number): Suspect|null} props.getSuspectAt - Function to get suspect at position
  * @param {HighlightedCells} [props.errorCells] - Error highlight state
  * @param {HighlightedCells} [props.hintCells] - Hint highlight state
@@ -31,6 +34,9 @@ function GameBoard({
   selectedCell,
   onCellClick,
   onCellRightClick,
+  onCellMouseDown,
+  onCellMouseEnter,
+  onDragEnd,
   getSuspectAt,
   errorCells = {},
   hintCells = {},
@@ -94,6 +100,8 @@ function GameBoard({
             }}
           />
           <div
+            onMouseUp={onDragEnd}
+            onMouseLeave={onDragEnd}
             style={{
               position: 'absolute',
               top: imageBorder.top,
@@ -136,6 +144,8 @@ function GameBoard({
                     possibleSuspects={possibleSuspects}
                     onCellClick={onCellClick}
                     onCellRightClick={onCellRightClick}
+                    onCellMouseDown={onCellMouseDown}
+                    onCellMouseEnter={onCellMouseEnter}
                     rooms={rooms}
                     cellSize={cellSize}
                   />

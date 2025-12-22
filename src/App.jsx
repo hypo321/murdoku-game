@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
 import {
@@ -45,13 +45,181 @@ function App() {
     setMessage,
     getSuspectAt,
     isSuspectPlaced,
+    // Drag helpers
+    addManualMark,
+    removeManualMark,
+    addPossibilityMark,
+    removePossibilityMark,
+    hasManualMark,
+    hasPossibilityMark,
+    saveToHistory,
   } = gameState;
+
+  // Drag state - using ref to avoid re-renders during drag
+  const dragStateRef = useRef({
+    isDragging: false,
+    dragAction: null, // 'addMark', 'removeMark', 'addPossibility', 'removePossibility'
+    lastCell: null, // Track last cell to avoid redundant calls with mousemove
+  });
+
+  /**
+   * Handles mouse down on a cell to start drag operation.
+   * Determines the action based on current cell state and button pressed.
+   */
+  const handleCellMouseDown = useCallback(
+    (row, col, button) => {
+      clearHighlights();
+      const existingSuspect = getSuspectAt(row, col);
+
+      // Left-click (button 0) - handle suspect placement or X marks
+      if (button === 0) {
+        // If there's a suspect selected and we're clicking on an empty occupiable cell,
+        // let the regular onClick handle suspect placement (no drag)
+        if (selectedSuspect && !existingSuspect) {
+          // Don't start drag - let onClick place the suspect
+          return;
+        }
+        // If clicking on existing suspect, let onClick handle it (no drag)
+        if (existingSuspect) {
+          return;
+        }
+        // No suspect selected and no existing suspect - drag to add/remove X marks
+        saveToHistory();
+        if (hasManualMark(row, col)) {
+          dragStateRef.current = {
+            isDragging: true,
+            dragAction: 'removeMark',
+            lastCell: `${row}-${col}`,
+          };
+          removeManualMark(row, col);
+        } else {
+          dragStateRef.current = {
+            isDragging: true,
+            dragAction: 'addMark',
+            lastCell: `${row}-${col}`,
+          };
+          addManualMark(row, col);
+        }
+        return;
+      }
+
+      // Right-click (button 2) - possibility marks or X marks
+      if (button === 2) {
+        if (existingSuspect) return;
+
+        saveToHistory();
+
+        if (selectedSuspect) {
+          // Toggle possibility mark for selected suspect
+          if (hasPossibilityMark(row, col)) {
+            dragStateRef.current = {
+              isDragging: true,
+              dragAction: 'removePossibility',
+              lastCell: `${row}-${col}`,
+            };
+            removePossibilityMark(row, col);
+          } else {
+            dragStateRef.current = {
+              isDragging: true,
+              dragAction: 'addPossibility',
+              lastCell: `${row}-${col}`,
+            };
+            addPossibilityMark(row, col);
+          }
+        } else {
+          // Toggle X mark
+          if (hasManualMark(row, col)) {
+            dragStateRef.current = {
+              isDragging: true,
+              dragAction: 'removeMark',
+              lastCell: `${row}-${col}`,
+            };
+            removeManualMark(row, col);
+          } else {
+            dragStateRef.current = {
+              isDragging: true,
+              dragAction: 'addMark',
+              lastCell: `${row}-${col}`,
+            };
+            addManualMark(row, col);
+          }
+        }
+      }
+    },
+    [
+      clearHighlights,
+      getSuspectAt,
+      saveToHistory,
+      selectedSuspect,
+      hasPossibilityMark,
+      removePossibilityMark,
+      addPossibilityMark,
+      hasManualMark,
+      removeManualMark,
+      addManualMark,
+    ]
+  );
+
+  /**
+   * Handles mouse move on a cell during drag operation.
+   * Applies the same action determined at drag start.
+   */
+  const handleCellMouseEnter = useCallback(
+    (row, col) => {
+      if (!dragStateRef.current.isDragging) return;
+
+      // Skip if we're still in the same cell (mousemove fires continuously)
+      const cellKey = `${row}-${col}`;
+      if (dragStateRef.current.lastCell === cellKey) return;
+      dragStateRef.current.lastCell = cellKey;
+
+      const existingSuspect = getSuspectAt(row, col);
+      if (existingSuspect) return;
+
+      const { dragAction } = dragStateRef.current;
+      switch (dragAction) {
+        case 'addMark':
+          addManualMark(row, col);
+          break;
+        case 'removeMark':
+          removeManualMark(row, col);
+          break;
+        case 'addPossibility':
+          addPossibilityMark(row, col);
+          break;
+        case 'removePossibility':
+          removePossibilityMark(row, col);
+          break;
+      }
+    },
+    [
+      getSuspectAt,
+      addManualMark,
+      removeManualMark,
+      addPossibilityMark,
+      removePossibilityMark,
+    ]
+  );
+
+  /**
+   * Handles mouse up to end drag operation.
+   */
+  const handleDragEnd = useCallback(() => {
+    dragStateRef.current = {
+      isDragging: false,
+      dragAction: null,
+      lastCell: null,
+    };
+  }, []);
 
   /**
    * Wraps cell click to clear highlights first.
+   * Skips if we're in a drag operation (drag already handled by mousedown).
    */
   const handleCellClick = useCallback(
     (row, col) => {
+      // Skip if we just finished a drag operation
+      if (dragStateRef.current.isDragging) return;
       gameHandleCellClick(row, col, clearHighlights);
     },
     [gameHandleCellClick, clearHighlights]
@@ -202,6 +370,9 @@ function App() {
               selectedCell={selectedCell}
               onCellClick={handleCellClick}
               onCellRightClick={handleCellRightClick}
+              onCellMouseDown={handleCellMouseDown}
+              onCellMouseEnter={handleCellMouseEnter}
+              onDragEnd={handleDragEnd}
               getSuspectAt={getSuspectAt}
               errorCells={errorCells}
               hintCells={hintCells}

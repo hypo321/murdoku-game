@@ -52,6 +52,8 @@ function getSuspectInitial(suspect) {
  * @param {string[]} props.possibleSuspects - Array of suspects that could possibly be here
  * @param {function(number, number): void} props.onCellClick - Left click handler
  * @param {function(number, number): void} props.onCellRightClick - Right click handler
+ * @param {function(number, number): void} props.onCellMouseDown - Mouse down handler
+ * @param {function(number, number): void} props.onCellMouseEnter - Mouse enter handler
  * @param {RoomMap} props.rooms - Room definitions
  * @param {number} props.cellSize - Cell size in pixels
  * @returns {JSX.Element}
@@ -68,6 +70,8 @@ function Cell({
   possibleSuspects = [],
   onCellClick,
   onCellRightClick,
+  onCellMouseDown,
+  onCellMouseEnter,
   rooms,
   cellSize,
 }) {
@@ -93,28 +97,37 @@ function Cell({
 
   function handleRightClick(e) {
     e.preventDefault();
-    onCellRightClick(row, col);
+    // Right click is handled by mousedown for drag support
+  }
+
+  function handleMouseDown(e) {
+    e.preventDefault();
+    onCellMouseDown(row, col, e.button);
+  }
+
+  function handleMouseMove() {
+    onCellMouseEnter(row, col);
   }
 
   return (
     <div
       className={`
-        relative border flex items-center justify-center
-        cursor-pointer transition-all duration-200 select-none
-        ${
+				relative border flex items-center justify-center
+				cursor-pointer transition-all duration-200 select-none
+				${
           isSelected
             ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-gray-800'
             : ''
         }
-        ${
+				${
           isError
             ? 'border-4 border-orange-500 bg-orange-500/30'
             : isHint
             ? 'border-4 border-green-400 bg-green-400/30'
             : 'border-gray-600/50'
         }
-        hover:bg-white/20
-      `}
+				hover:bg-white/20
+			`}
       style={{
         backgroundColor: 'transparent',
         width: `${cellSize}px`,
@@ -125,6 +138,8 @@ function Cell({
       }}
       onClick={handleClick}
       onContextMenu={handleRightClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
       title={getTooltip()}
     >
       {hasSuspect && (

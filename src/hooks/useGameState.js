@@ -527,6 +527,122 @@ export function useGameState(puzzle) {
     setSelectedSuspect(suspect);
   }, []);
 
+  /**
+   * Adds a manual X mark to a cell (for drag operations).
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   */
+  const addManualMark = useCallback(
+    (row, col) => {
+      const cellKey = createCellKey(row, col);
+      const existingSuspect = getSuspectAt(row, col);
+      if (existingSuspect) return;
+
+      setManualMarks((prev) => {
+        if (prev[cellKey]) return prev;
+        return { ...prev, [cellKey]: true };
+      });
+    },
+    [getSuspectAt]
+  );
+
+  /**
+   * Removes a manual X mark from a cell (for drag operations).
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   */
+  const removeManualMark = useCallback((row, col) => {
+    const cellKey = createCellKey(row, col);
+    setManualMarks((prev) => {
+      if (!prev[cellKey]) return prev;
+      const newMarks = { ...prev };
+      delete newMarks[cellKey];
+      return newMarks;
+    });
+  }, []);
+
+  /**
+   * Adds a possibility mark for the selected suspect (for drag operations).
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   */
+  const addPossibilityMark = useCallback(
+    (row, col) => {
+      if (!selectedSuspect) return;
+      const cellKey = createCellKey(row, col);
+      const existingSuspect = getSuspectAt(row, col);
+      if (existingSuspect) return;
+
+      setPossibilityMarks((prev) => {
+        const currentMarks = prev[cellKey] || [];
+        if (currentMarks.includes(selectedSuspect.id)) return prev;
+        return {
+          ...prev,
+          [cellKey]: [...currentMarks, selectedSuspect.id].sort(),
+        };
+      });
+    },
+    [selectedSuspect, getSuspectAt]
+  );
+
+  /**
+   * Removes a possibility mark for the selected suspect (for drag operations).
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   */
+  const removePossibilityMark = useCallback(
+    (row, col) => {
+      if (!selectedSuspect) return;
+      const cellKey = createCellKey(row, col);
+
+      setPossibilityMarks((prev) => {
+        const currentMarks = prev[cellKey] || [];
+        if (!currentMarks.includes(selectedSuspect.id)) return prev;
+        const filtered = currentMarks.filter(
+          (id) => id !== selectedSuspect.id
+        );
+        const newMarks = { ...prev };
+        if (filtered.length === 0) {
+          delete newMarks[cellKey];
+        } else {
+          newMarks[cellKey] = filtered;
+        }
+        return newMarks;
+      });
+    },
+    [selectedSuspect]
+  );
+
+  /**
+   * Checks if a cell has a manual X mark.
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   * @returns {boolean}
+   */
+  const hasManualMark = useCallback(
+    (row, col) => {
+      const cellKey = createCellKey(row, col);
+      return !!manualMarks[cellKey];
+    },
+    [manualMarks]
+  );
+
+  /**
+   * Checks if a cell has the selected suspect's possibility mark.
+   * @param {number} row - Row index
+   * @param {number} col - Column index
+   * @returns {boolean}
+   */
+  const hasPossibilityMark = useCallback(
+    (row, col) => {
+      if (!selectedSuspect) return false;
+      const cellKey = createCellKey(row, col);
+      const marks = possibilityMarks[cellKey] || [];
+      return marks.includes(selectedSuspect.id);
+    },
+    [selectedSuspect, possibilityMarks]
+  );
+
   return {
     // State
     placements,
@@ -550,6 +666,15 @@ export function useGameState(puzzle) {
     handleClearMarks,
     selectSuspect,
     setMessage,
+
+    // Drag helpers
+    addManualMark,
+    removeManualMark,
+    addPossibilityMark,
+    removePossibilityMark,
+    hasManualMark,
+    hasPossibilityMark,
+    saveToHistory,
 
     // Helpers
     getSuspectAt,
