@@ -1,3 +1,4 @@
+/* global __BUILD_TIME__ */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
@@ -497,8 +498,11 @@ function App() {
         </div>
       </div>
 
-      <footer className="text-center mt-8 text-gray-500 text-sm">
+      <footer className="text-center mt-8 text-gray-500 text-xs">
         <p>Based on the Murdoku puzzle concept</p>
+        <p className="mt-1 text-gray-600">
+          Build: {new Date(__BUILD_TIME__).toLocaleString()}
+        </p>
       </footer>
     </div>
   );
