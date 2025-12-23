@@ -138,6 +138,7 @@ function GameBoard({
             ref={gridRef}
             onMouseUp={onDragEnd}
             onMouseLeave={onDragEnd}
+            onContextMenu={(e) => e.preventDefault()}
             onTouchEnd={onDragEnd}
             style={{
               position: 'absolute',
