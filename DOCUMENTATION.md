@@ -43,7 +43,7 @@ Place all suspects on the board in their correct positions by:
 | Action | Control |
 |--------|---------|
 | Place suspect | Select suspect → Click cell |
-| Mark cell with X | Click empty cell (no suspect selected) OR Right-click |
+| Mark cell with X | Click/tap empty cell (no suspect selected) OR Right-click |
 | Remove suspect | Select placed suspect → Click their cell |
 | Move suspect | Select placed suspect → Click new cell |
 | Swap suspects | Select suspect → Click cell with another suspect |
@@ -590,6 +590,11 @@ npm run lint
 - **TailwindCSS** - Styling
 - **ESLint** - Code linting
 
+### Deployment Notes
+
+- A build timestamp is injected via Vite (`__BUILD_TIME__`) and shown in the footer to verify deployed version freshness.
+- Touch/mouse drag for X marks: drag starts on mousedown/touchstart (action decided by initial cell); `pointer-events: none` is applied to X mark overlays so touchstart/drag works on marked cells; global `touchmove` handler tracks finger position using `elementFromPoint`.
+
 ---
 
 ## License
@@ -598,4 +603,4 @@ This project is for educational and entertainment purposes.
 
 ---
 
-*Documentation last updated: December 21, 2024*
+*Documentation last updated: December 23, 2025*
