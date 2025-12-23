@@ -130,75 +130,75 @@ const puzzle = {
 
   hints: [
     {
-      suspect: 'diane',
+      suspect: 'crystal',
       order: 1,
       prerequisites: [],
-      target: { type: 'room', room: 'waitingArea' },
-      messages: {
-        single:
-          '💡 Diane was alone in the Waiting Area. Only one spot there can be occupied.',
-        multiple:
-          '💡 Diane was alone in the Waiting Area. Look for the only available seat there.',
-      },
-    },
-    {
-      suspect: 'crystal',
-      order: 2,
-      prerequisites: ['diane'],
       target: { type: 'cellType', cellType: 'chair' },
       messages: {
         single:
-          '💡 Crystal was sitting in a chair. With Diane alone in the Waiting Area, the only remaining chair is in Reception!',
+          '💡 Crystal was sitting in a chair. Diane must be alone in the Waiting Area, so the only chair left for Crystal is in Reception.',
         multiple:
-          '💡 Crystal was sitting in a chair. With the Waiting Area occupied, check the chair in Reception.',
+          '💡 Crystal was sitting in a chair. The Waiting Area is off-limits to everyone else, so check the chair in Reception.',
       },
     },
     {
       suspect: 'brock',
-      order: 3,
+      order: 2,
       prerequisites: ['crystal'],
       target: { type: 'cellType', cellType: 'oilSlick' },
       messages: {
         single:
-          '💡 Brock was on an oil slick. After Crystal blocks her row and column, there is only one oil slick left!',
+          '💡 Brock was on an oil slick. With Crystal placed, only one oil slick cell remains open.',
         multiple:
-          '💡 Brock was on an oil slick. With Crystal placed, one of the slicks is blocked – check the remaining one.',
+          '💡 Brock was on an oil slick. Crystal’s placement blocks one slick, leaving a single option.',
       },
     },
     {
       suspect: 'anthony',
-      order: 4,
+      order: 3,
       prerequisites: ['brock'],
       target: { type: 'cellType', cellType: 'car' },
       messages: {
         single:
-          '💡 Anthony was in a car. Brock’s row blocks one car spot, leaving a single open car.',
+          '💡 Anthony was in a car. After Brock blocks his row and column, only one car cell is free.',
         multiple:
-          '💡 Anthony was in a car. With Brock placed, only one car spot remains open.',
+          '💡 Anthony was in a car. With Brock placed, just one car spot remains available.',
+      },
+    },
+    {
+      suspect: 'diane',
+      order: 4,
+      prerequisites: ['anthony'],
+      target: { type: 'room', room: 'waitingArea' },
+      messages: {
+        single:
+          '💡 Diane was alone in the Waiting Area. With rows and columns blocked, only one cell there is free.',
+        multiple:
+          '💡 Diane was alone in the Waiting Area. Check the last open cell in that room.',
       },
     },
     {
       suspect: 'emilio',
       order: 5,
-      prerequisites: ['anthony'],
+      prerequisites: ['diane'],
       target: { type: 'adjacentTo', cellType: 'shelf' },
       messages: {
         single:
           '💡 Emilio was beside a shelf. There is only one available cell adjacent to a shelf now.',
         multiple:
-          '💡 Emilio was beside a shelf. Look for free cells touching a shelf.',
+          '💡 Emilio was beside a shelf. Look for the remaining free shelf-adjacent spot.',
       },
     },
     {
       suspect: 'vaughn',
       order: 6,
       prerequisites: ['emilio'],
-      target: { type: 'room', room: 'reception' },
+      target: { type: 'any' },
       messages: {
         single:
-          '💡 Vaughn was alone with the murderer. The only open spot in Reception with Crystal is his.',
+          '💡 Vaughn was alone with the murderer. Only one cell is left—place Vaughn there with Crystal.',
         multiple:
-          '💡 Vaughn was alone with the murderer. Look for the last available spot in the same room as Crystal.',
+          '💡 Vaughn was alone with the murderer. Place him in the last remaining cell, in the same room as Crystal.',
       },
     },
   ],

@@ -154,6 +154,13 @@ export function useGameState(puzzle) {
     [placements]
   );
 
+  // Auto-deselect a suspect once it has been placed.
+  useEffect(() => {
+    if (selectedSuspect && isSuspectPlaced(selectedSuspect.id)) {
+      setSelectedSuspect(null);
+    }
+  }, [selectedSuspect, placements, isSuspectPlaced]);
+
   /**
    * Gets the current position of a placed suspect.
    *
