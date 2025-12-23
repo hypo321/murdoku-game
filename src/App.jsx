@@ -69,7 +69,7 @@ function App() {
    * Determines the action based on current cell state and button pressed.
    */
   const handleCellMouseDown = useCallback(
-    (row, col, button) => {
+    (row, col, button, isTouch = false) => {
       clearHighlights();
       const existingSuspect = getSuspectAt(row, col);
 
@@ -78,11 +78,19 @@ function App() {
         // If there's a suspect selected and we're clicking on an empty occupiable cell,
         // let the regular onClick handle suspect placement (no drag)
         if (selectedSuspect && !existingSuspect) {
+          if (isTouch) {
+            dragStateRef.current.lastActionTime = Date.now();
+            gameHandleCellClick(row, col, clearHighlights);
+          }
           // Don't start drag - let onClick place the suspect
           return;
         }
         // If clicking on existing suspect, let onClick handle it (no drag)
         if (existingSuspect) {
+          if (isTouch) {
+            dragStateRef.current.lastActionTime = Date.now();
+            gameHandleCellClick(row, col, clearHighlights);
+          }
           return;
         }
         // No suspect selected and no existing suspect - drag to add/remove X marks

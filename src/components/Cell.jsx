@@ -89,7 +89,8 @@ function Cell({
 
     const handleTouchStart = (e) => {
       e.preventDefault();
-      onCellMouseDown(row, col, 0);
+      // Pass isTouch=true so App handles touch placement/drag correctly
+      onCellMouseDown(row, col, 0, true);
     };
 
     const handleTouchMove = (e) => {
