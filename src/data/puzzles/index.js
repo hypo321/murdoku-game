@@ -1,8 +1,10 @@
 import backyardGardenEasy from './backyard-garden-easy';
+import carRepairEasy from './car-repair-easy';
 import horseTrackHard from './horse-track-hard';
 
 export const puzzles = {
   'backyard-garden-easy': backyardGardenEasy,
+  'car-repair-easy': carRepairEasy,
   'horse-track-hard': horseTrackHard,
 };
 
