@@ -73,11 +73,8 @@ function App() {
    * - With no suspect: start X drag.
    */
   const handleCellMouseDown = useCallback(
-    (row, col, button, isTouch = false) => {
+    (row, col, button) => {
       dragStateRef.current.isPointerDown = true;
-      if (isTouch) {
-        dragStateRef.current.lastActionTime = Date.now();
-      }
       clearHighlights();
       const existingSuspect = getSuspectAt(row, col);
 
@@ -243,6 +240,7 @@ function App() {
       removeManualMark,
       addPossibilityMark,
       removePossibilityMark,
+      saveToHistory,
     ]
   );
 
@@ -345,6 +343,7 @@ function App() {
     document.addEventListener('touchmove', handleGlobalTouchMove, {
       passive: true,
     });
+
     return () =>
       document.removeEventListener(
         'touchmove',
@@ -356,6 +355,7 @@ function App() {
     removeManualMark,
     addPossibilityMark,
     removePossibilityMark,
+    saveToHistory,
   ]);
 
   /**
@@ -461,29 +461,32 @@ function App() {
   /**
    * Gets the congratulations or failure message based on solution result.
    */
-  function getSolutionMessage(result) {
-    if (result.isComplete) {
-      const murdererSuspect = suspects.find(
-        (s) => s.id === puzzle.murderer
-      );
-      const victimSuspect = suspects.find(
-        (s) => s.id === puzzle.victim
-      );
-      const roomName =
-        puzzle.rooms[puzzle.crimeRoom]?.name || puzzle.crimeRoom;
+  const getSolutionMessage = useCallback(
+    (result) => {
+      if (result.isComplete) {
+        const murdererSuspect = suspects.find(
+          (s) => s.id === puzzle.murderer
+        );
+        const victimSuspect = suspects.find(
+          (s) => s.id === puzzle.victim
+        );
+        const roomName =
+          puzzle.rooms[puzzle.crimeRoom]?.name || puzzle.crimeRoom;
 
-      return `🎉 Congratulations, detective! You have caught the killer ${
-        murdererSuspect?.name || 'Unknown'
-      } who was alone with ${
-        victimSuspect?.name || 'the victim'
-      } in the ${roomName}!`;
-    } else {
-      const wrongCount = totalSuspects - result.correctCount;
-      return `❌ Not quite right! ${wrongCount} suspect${
-        wrongCount > 1 ? 's are' : ' is'
-      } in the wrong position. Keep trying!`;
-    }
-  }
+        return `🎉 Congratulations, detective! You have caught the killer ${
+          murdererSuspect?.name || 'Unknown'
+        } who was alone with ${
+          victimSuspect?.name || 'the victim'
+        } in the ${roomName}!`;
+      } else {
+        const wrongCount = totalSuspects - result.correctCount;
+        return `❌ Not quite right! ${wrongCount} suspect${
+          wrongCount > 1 ? 's are' : ' is'
+        } in the wrong position. Keep trying!`;
+      }
+    },
+    [puzzle, suspects, totalSuspects]
+  );
 
   /**
    * Auto-check solution when all suspects are placed.
@@ -493,7 +496,14 @@ function App() {
       const result = checkCurrentSolution(placements);
       setMessage(getSolutionMessage(result));
     }
-  }, [placedCount, totalSuspects, placements]);
+  }, [
+    placedCount,
+    totalSuspects,
+    placements,
+    checkCurrentSolution,
+    getSolutionMessage,
+    setMessage,
+  ]);
 
   /**
    * Checks the current solution and displays the result.

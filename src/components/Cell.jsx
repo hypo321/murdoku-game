@@ -148,7 +148,7 @@ function Cell({
 
   function handleRightClick(e) {
     e.preventDefault();
-    // Right click is handled by mousedown for drag support
+    onCellRightClick(row, col);
   }
 
   function handleMouseDown(e) {
