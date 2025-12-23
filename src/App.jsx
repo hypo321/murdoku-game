@@ -62,38 +62,49 @@ function App() {
     dragAction: null, // 'addMark', 'removeMark', 'addPossibility', 'removePossibility'
     lastCell: null, // Track last cell to avoid redundant calls with mousemove
     lastActionTime: 0, // Timestamp to prevent click from firing after mousedown/touch
+    pendingPossibility: null, // For selected suspect: wait to see if drag occurs
+    pendingPlacement: null, // For selected suspect: tap placement fallback
+    isPointerDown: false, // Track mouse/touch down state
   });
 
   /**
-   * Handles mouse down on a cell to start drag operation.
-   * Determines the action based on current cell state and button pressed.
+   * Handles mouse/touch down on a cell to start drag operation.
+   * - With suspect selected on empty cell: arm possibility drag; placement happens if no drag.
+   * - With no suspect: start X drag.
    */
   const handleCellMouseDown = useCallback(
     (row, col, button, isTouch = false) => {
+      dragStateRef.current.isPointerDown = true;
+      if (isTouch) {
+        dragStateRef.current.lastActionTime = Date.now();
+      }
       clearHighlights();
       const existingSuspect = getSuspectAt(row, col);
 
-      // Left-click (button 0) - handle suspect placement or X marks
+      // Left-click (button 0)
       if (button === 0) {
-        // If there's a suspect selected and we're clicking on an empty occupiable cell,
-        // let the regular onClick handle suspect placement (no drag)
+        // Suspect selected on empty cell: arm possibility drag; placement on click/tap if no drag
         if (selectedSuspect && !existingSuspect) {
-          if (isTouch) {
-            dragStateRef.current.lastActionTime = Date.now();
-            gameHandleCellClick(row, col, clearHighlights);
-          }
-          // Don't start drag - let onClick place the suspect
+          const action = hasPossibilityMark(row, col)
+            ? 'removePossibility'
+            : 'addPossibility';
+          dragStateRef.current = {
+            ...dragStateRef.current,
+            isDragging: false,
+            dragAction: null,
+            lastCell: null,
+            pendingPossibility: { action, row, col },
+            pendingPlacement: { row, col },
+          };
           return;
         }
-        // If clicking on existing suspect, let onClick handle it (no drag)
+
+        // Clicking on existing suspect – let click handler manage selection/removal
         if (existingSuspect) {
-          if (isTouch) {
-            dragStateRef.current.lastActionTime = Date.now();
-            gameHandleCellClick(row, col, clearHighlights);
-          }
           return;
         }
-        // No suspect selected and no existing suspect - drag to add/remove X marks
+
+        // No suspect selected: X drag
         dragStateRef.current.lastActionTime = Date.now();
         saveToHistory();
         if (hasManualMark(row, col)) {
@@ -116,16 +127,15 @@ function App() {
         return;
       }
 
-      // Right-click (button 2) - possibility marks or X marks
+      // Right-click (button 2)
       if (button === 2) {
         if (existingSuspect) return;
-
         saveToHistory();
 
         if (selectedSuspect) {
-          // Toggle possibility mark for selected suspect
           if (hasPossibilityMark(row, col)) {
             dragStateRef.current = {
+              ...dragStateRef.current,
               isDragging: true,
               dragAction: 'removePossibility',
               lastCell: `${row}-${col}`,
@@ -133,6 +143,7 @@ function App() {
             removePossibilityMark(row, col);
           } else {
             dragStateRef.current = {
+              ...dragStateRef.current,
               isDragging: true,
               dragAction: 'addPossibility',
               lastCell: `${row}-${col}`,
@@ -140,9 +151,9 @@ function App() {
             addPossibilityMark(row, col);
           }
         } else {
-          // Toggle X mark
           if (hasManualMark(row, col)) {
             dragStateRef.current = {
+              ...dragStateRef.current,
               isDragging: true,
               dragAction: 'removeMark',
               lastCell: `${row}-${col}`,
@@ -150,6 +161,7 @@ function App() {
             removeManualMark(row, col);
           } else {
             dragStateRef.current = {
+              ...dragStateRef.current,
               isDragging: true,
               dragAction: 'addMark',
               lastCell: `${row}-${col}`,
@@ -179,6 +191,26 @@ function App() {
    */
   const handleCellMouseEnter = useCallback(
     (row, col) => {
+      // If a possibility drag is pending (suspect selected, no drag yet), start drag now
+      if (dragStateRef.current.pendingPossibility) {
+        const {
+          action,
+          row: startRow,
+          col: startCol,
+        } = dragStateRef.current.pendingPossibility;
+        dragStateRef.current.pendingPossibility = null;
+        dragStateRef.current.pendingPlacement = null;
+        dragStateRef.current.isDragging = true;
+        dragStateRef.current.dragAction = action;
+        dragStateRef.current.lastCell = `${startRow}-${startCol}`;
+        saveToHistory();
+        if (action === 'addPossibility') {
+          addPossibilityMark(startRow, startCol);
+        } else {
+          removePossibilityMark(startRow, startCol);
+        }
+      }
+
       if (!dragStateRef.current.isDragging) return;
 
       // Skip if we're still in the same cell (mousemove fires continuously)
@@ -218,50 +250,58 @@ function App() {
    * Handles mouse up to end drag operation.
    */
   const handleDragEnd = useCallback(() => {
+    // If no drag occurred and a placement was pending (touch tap), place the suspect now
+    if (
+      !dragStateRef.current.isDragging &&
+      dragStateRef.current.pendingPlacement
+    ) {
+      const { row, col } = dragStateRef.current.pendingPlacement;
+      gameHandleCellClick(row, col, clearHighlights);
+    }
+
     dragStateRef.current = {
       ...dragStateRef.current,
       isDragging: false,
       dragAction: null,
       lastCell: null,
+      pendingPossibility: null,
+      pendingPlacement: null,
+      isPointerDown: false,
     };
-  }, []);
+  }, [clearHighlights, gameHandleCellClick]);
 
   // Global touchmove handler with debug logging
   useEffect(() => {
     const handleGlobalTouchMove = (e) => {
-      console.log(
-        '[TOUCHMOVE] isDragging:',
-        dragStateRef.current.isDragging,
-        'dragAction:',
-        dragStateRef.current.dragAction
-      );
+      // If a possibility drag was armed on touchstart and we move, start the drag now
+      if (dragStateRef.current.pendingPossibility) {
+        const { action, row, col } =
+          dragStateRef.current.pendingPossibility;
+        dragStateRef.current.pendingPossibility = null;
+        dragStateRef.current.pendingPlacement = null;
+        dragStateRef.current.isDragging = true;
+        dragStateRef.current.dragAction = action;
+        dragStateRef.current.lastCell = `${row}-${col}`;
+        saveToHistory();
+        if (action === 'addPossibility') {
+          addPossibilityMark(row, col);
+        } else {
+          removePossibilityMark(row, col);
+        }
+      }
+
       if (!dragStateRef.current.isDragging) return;
 
       const touch = e.touches[0];
-      console.log(
-        '[TOUCHMOVE] touch coords:',
-        touch.clientX,
-        touch.clientY
-      );
       let target = document.elementFromPoint(
         touch.clientX,
         touch.clientY
       );
-      console.log(
-        '[TOUCHMOVE] initial target:',
-        target?.tagName,
-        target?.className?.substring?.(0, 50)
-      );
 
+      // Traverse up to find element with data-row/data-col
       while (target && target.dataset?.row === undefined) {
         target = target.parentElement;
       }
-      console.log(
-        '[TOUCHMOVE] final target row:',
-        target?.dataset?.row,
-        'col:',
-        target?.dataset?.col
-      );
 
       if (target) {
         const row = target.dataset?.row;
@@ -329,6 +369,25 @@ function App() {
       // Skip if mousedown/touchstart just handled this (within 500ms)
       // This prevents touch devices from double-firing (touchstart + click)
       if (Date.now() - dragStateRef.current.lastActionTime < 500) {
+        return;
+      }
+
+      // If a possibility drag was armed but no drag happened, treat as placement (default)
+      if (dragStateRef.current.pendingPossibility) {
+        dragStateRef.current.pendingPossibility = null;
+        if (dragStateRef.current.pendingPlacement) {
+          gameHandleCellClick(row, col, clearHighlights);
+          dragStateRef.current.pendingPlacement = null;
+          return;
+        }
+        gameHandleCellClick(row, col, clearHighlights);
+        return;
+      }
+
+      // If touch/mouse down stored a pending placement and no drag happened, place suspect
+      if (dragStateRef.current.pendingPlacement) {
+        dragStateRef.current.pendingPlacement = null;
+        gameHandleCellClick(row, col, clearHighlights);
         return;
       }
 
