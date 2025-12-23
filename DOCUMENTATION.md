@@ -594,6 +594,8 @@ npm run lint
 
 - A build timestamp is injected via Vite (`__BUILD_TIME__`) and shown in the footer to verify deployed version freshness.
 - Touch/mouse drag for X marks: drag starts on mousedown/touchstart (action decided by initial cell); `pointer-events: none` is applied to X mark overlays so touchstart/drag works on marked cells; global `touchmove` handler tracks finger position using `elementFromPoint`.
+- Dev server LAN access: Vite is configured with `server.host = '0.0.0.0'` so you can run `npm run dev` and open from other devices via `http://<your-local-ip>:5173`.
+- Context menu suppression: the board grid prevents the native context menu to avoid interfering with right-click actions.
 
 ---
 
@@ -603,4 +605,4 @@ This project is for educational and entertainment purposes.
 
 ---
 
-*Documentation last updated: December 23, 2025*
+*Documentation last updated: December 23, 2025 (afternoon)*
