@@ -18,6 +18,10 @@ export const cellTypes = {
   PLANT: 'plant',
   TRACK: 'track',
   FINISHING_LINE: 'finishingLine',
+  BONSAI: 'bonsai',
+  CACTUS: 'cactus',
+  SHRUB: 'shrub',
+  PATH: 'path',
 };
 
 export const occupiableTypes = [
@@ -28,4 +32,5 @@ export const occupiableTypes = [
   cellTypes.POND_WATER,
   cellTypes.OIL_SLICK,
   cellTypes.HORSE,
+  cellTypes.PATH,
 ];
