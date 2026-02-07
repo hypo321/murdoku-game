@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { generateHint } from '../utils/hintGenerator';
+import { useState, useCallback, useRef } from 'react';
+import { getNextHint } from '../engine/hintEngine';
 import { validateCurrentState } from '../utils/validation';
 import { createCellKey } from '../constants';
 
@@ -26,12 +26,16 @@ export function useHints(puzzle) {
   /** @type {[HighlightedCells, Function]} */
   const [hintCells, setHintCells] = useState({});
 
+  // Tracks a pending hint waiting for the second click to reveal cells
+  const pendingHintRef = useRef(null);
+
   /**
-   * Clears all highlights (error and hint cells).
+   * Clears all highlights (error and hint cells) and any pending hint.
    */
   const clearHighlights = useCallback(() => {
     setErrorCells({});
     setHintCells({});
+    pendingHintRef.current = null;
   }, []);
 
   /**
@@ -44,13 +48,15 @@ export function useHints(puzzle) {
    */
   const getHint = useCallback(
     (placements, markedCells) => {
+      // Save pending hint before clearHighlights wipes it
+      const pendingHint = pendingHintRef.current;
       clearHighlights();
 
       const errors = validateCurrentState(
         placements,
         markedCells,
         solution,
-        suspects
+        suspects,
       );
 
       // Check for wrong placements first
@@ -84,32 +90,44 @@ export function useHints(puzzle) {
         };
       }
 
-      // Generate a hint based on current state
-      const hint = generateHint(puzzle, placements, markedCells);
-
-      // Highlight cells from the hint
-      if (hint.highlightCells && hint.highlightCells.length > 0) {
-        const highlighted = {};
-        for (const cell of hint.highlightCells) {
-          highlighted[createCellKey(cell.row, cell.col)] = true;
+      // Stage 2: if there's a pending hint, reveal its highlighted cells
+      if (pendingHint) {
+        if (
+          pendingHint.highlightCells &&
+          pendingHint.highlightCells.length > 0
+        ) {
+          const highlighted = {};
+          for (const cellKey of pendingHint.highlightCells) {
+            highlighted[cellKey] = true;
+          }
+          setHintCells(highlighted);
         }
-        setHintCells(highlighted);
+
+        let suspectToSelect = null;
+        if (pendingHint.suspect && pendingHint.action !== 'mark') {
+          suspectToSelect =
+            suspects.find((s) => s.id === pendingHint.suspect) ||
+            null;
+        }
+
+        return {
+          hint: pendingHint,
+          error: null,
+          suspectToSelect,
+        };
       }
 
-      // Find suspect to auto-select (if not a marking hint)
-      let suspectToSelect = null;
-      if (hint.suspect && hint.action !== 'mark') {
-        suspectToSelect =
-          suspects.find((s) => s.id === hint.suspect) || null;
-      }
+      // Stage 1: generate a new hint, show message only (no cell highlights)
+      const hint = getNextHint(puzzle, placements);
+      pendingHintRef.current = hint;
 
       return {
         hint,
         error: null,
-        suspectToSelect,
+        suspectToSelect: null,
       };
     },
-    [puzzle, solution, suspects, clearHighlights]
+    [puzzle, solution, suspects, clearHighlights],
   );
 
   return {

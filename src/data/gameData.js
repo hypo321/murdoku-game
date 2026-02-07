@@ -22,6 +22,7 @@ export const cellTypes = {
   CACTUS: 'cactus',
   SHRUB: 'shrub',
   PATH: 'path',
+  BOX: 'box',
 };
 
 export const occupiableTypes = [
@@ -33,4 +34,5 @@ export const occupiableTypes = [
   cellTypes.OIL_SLICK,
   cellTypes.HORSE,
   cellTypes.PATH,
+  cellTypes.BED,
 ];

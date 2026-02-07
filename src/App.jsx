@@ -2,12 +2,31 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import GameBoard from './components/GameBoard';
 import SuspectCard from './components/SuspectCard';
+import GridEditor from './components/GridEditor';
 import {
   getPuzzle,
   defaultPuzzleId,
   puzzleList,
 } from './data/puzzles';
 import { useGameState, useHints, useValidation } from './hooks';
+import { solveFromState } from './engine/hintEngine';
+import { puzzles } from './data/puzzles';
+
+// DEV: Run solver test on all puzzles at startup
+if (import.meta.env.DEV) {
+  console.group('🔍 Solver Verification');
+  for (const [id, p] of Object.entries(puzzles)) {
+    const result = solveFromState(p);
+    const icon = result.solved ? '✅' : '❌';
+    console.log(
+      `${icon} ${id}: ${result.solved ? 'SOLVED' : 'FAILED'} in ${result.steps.length} steps${result.unplaced.length ? ` (unplaced: ${result.unplaced.join(', ')})` : ''}`,
+    );
+    if (!result.solved) {
+      console.log('  Steps:', result.steps);
+    }
+  }
+  console.groupEnd();
+}
 
 /**
  * Main application component for Murdoku game.
@@ -16,6 +35,20 @@ import { useGameState, useHints, useValidation } from './hooks';
 function App() {
   const [currentPuzzleId, setCurrentPuzzleId] =
     useState(defaultPuzzleId);
+  const [editorMode, setEditorMode] = useState(
+    () => window.location.hash === '#editor',
+  );
+
+  // Listen for hash changes to toggle editor mode
+  useEffect(() => {
+    const handleHashChange = () => {
+      setEditorMode(window.location.hash === '#editor');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () =>
+      window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const puzzle = getPuzzle(currentPuzzleId);
   const { suspects } = puzzle;
 
@@ -179,7 +212,7 @@ function App() {
       hasManualMark,
       removeManualMark,
       addManualMark,
-    ]
+    ],
   );
 
   /**
@@ -241,7 +274,7 @@ function App() {
       addPossibilityMark,
       removePossibilityMark,
       saveToHistory,
-    ]
+    ],
   );
 
   /**
@@ -293,7 +326,7 @@ function App() {
       const touch = e.touches[0];
       let target = document.elementFromPoint(
         touch.clientX,
-        touch.clientY
+        touch.clientY,
       );
 
       // Traverse up to find element with data-row/data-col
@@ -319,7 +352,7 @@ function App() {
             dragStateRef.current.dragAction,
             'on',
             rowNum,
-            colNum
+            colNum,
           );
           const { dragAction } = dragStateRef.current;
           switch (dragAction) {
@@ -347,7 +380,7 @@ function App() {
     return () =>
       document.removeEventListener(
         'touchmove',
-        handleGlobalTouchMove
+        handleGlobalTouchMove,
       );
   }, [
     getSuspectAt,
@@ -406,7 +439,7 @@ function App() {
       clearHighlights,
       getSuspectAt,
       selectedSuspect,
-    ]
+    ],
   );
 
   /**
@@ -416,7 +449,7 @@ function App() {
     (row, col) => {
       gameHandleCellRightClick(row, col, clearHighlights);
     },
-    [gameHandleCellRightClick, clearHighlights]
+    [gameHandleCellRightClick, clearHighlights],
   );
 
   /**
@@ -437,14 +470,14 @@ function App() {
       if (result.error.type === 'wrongPlacement') {
         const { suspect } = result.error.data;
         setMessage(
-          `⚠️ ${suspect.name} is not in the correct position. Try moving them.`
+          `⚠️ ${suspect.name} is not in the correct position. Try moving them.`,
         );
       } else if (result.error.type === 'wrongMarks') {
         const count = result.error.data.length;
         setMessage(
           `⚠️ Something is wrong with the highlighted cell${
             count > 1 ? 's' : ''
-          }. Check your X marks.`
+          }. Check your X marks.`,
         );
       }
       return;
@@ -465,10 +498,10 @@ function App() {
     (result) => {
       if (result.isComplete) {
         const murdererSuspect = suspects.find(
-          (s) => s.id === puzzle.murderer
+          (s) => s.id === puzzle.murderer,
         );
         const victimSuspect = suspects.find(
-          (s) => s.id === puzzle.victim
+          (s) => s.id === puzzle.victim,
         );
         const roomName =
           puzzle.rooms[puzzle.crimeRoom]?.name || puzzle.crimeRoom;
@@ -485,7 +518,7 @@ function App() {
         } in the wrong position. Keep trying!`;
       }
     },
-    [puzzle, suspects, totalSuspects]
+    [puzzle, suspects, totalSuspects],
   );
 
   /**
@@ -513,12 +546,24 @@ function App() {
 
     if (!result.allPlaced) {
       setMessage(
-        `Place all ${totalSuspects} suspects before checking! (${placedCount}/${totalSuspects} placed)`
+        `Place all ${totalSuspects} suspects before checking! (${placedCount}/${totalSuspects} placed)`,
       );
       return;
     }
 
     setMessage(getSolutionMessage(result));
+  }
+
+  if (editorMode) {
+    return (
+      <GridEditor
+        puzzleId={currentPuzzleId}
+        onExit={() => {
+          window.location.hash = '';
+          setEditorMode(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -549,6 +594,15 @@ function App() {
             ))}
           </select>
         )}
+        <button
+          onClick={() => {
+            window.location.hash = '#editor';
+            setEditorMode(true);
+          }}
+          className="ml-2 mt-2 px-3 py-1 bg-gray-600 hover:bg-gray-700 text-gray-300 rounded-lg text-sm"
+        >
+          Grid Editor
+        </button>
       </header>
 
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
