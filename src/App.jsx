@@ -54,8 +54,13 @@ function App() {
 
   // Custom hooks for game logic
   const gameState = useGameState(puzzle);
-  const { errorCells, hintCells, getHint, clearHighlights } =
-    useHints(puzzle);
+  const {
+    errorCells,
+    hintCells,
+    getHint,
+    clearHighlights,
+    resetHints,
+  } = useHints(puzzle);
   const { checkCurrentSolution } = useValidation(puzzle);
 
   // Destructure game state for easier access
@@ -456,9 +461,30 @@ function App() {
    * Wraps reset to also clear highlights.
    */
   const handleReset = useCallback(() => {
-    clearHighlights();
+    resetHints();
     gameHandleReset();
-  }, [clearHighlights, gameHandleReset]);
+  }, [resetHints, gameHandleReset]);
+
+  /**
+   * Copies current game state to clipboard for bug reporting.
+   */
+  function handleDebugExport() {
+    const state = {
+      puzzleId: currentPuzzleId,
+      placements,
+      markedCells,
+      possibilityMarks,
+      hintCells,
+      errorCells,
+      message,
+      selectedSuspect: selectedSuspect?.id || null,
+      placedCount,
+    };
+    const json = JSON.stringify(state, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      setMessage('📋 Debug state copied to clipboard!');
+    });
+  }
 
   /**
    * Gets a hint and handles the result.
@@ -663,6 +689,13 @@ function App() {
                 className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors text-sm"
               >
                 💡 Get Hint
+              </button>
+              <button
+                onClick={handleDebugExport}
+                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors text-sm"
+                title="Copy game state to clipboard for bug reporting"
+              >
+                🐛
               </button>
             </div>
 

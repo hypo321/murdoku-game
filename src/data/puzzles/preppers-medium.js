@@ -252,13 +252,29 @@ const puzzle = {
 
   hints: [
     {
+      id: 'deduce-carolina-bedroom',
+      action: 'deduce',
+      order: 0.1,
+      prerequisites: [],
+      message: `💡 Edna must be in the bottom row, so no man can reach the Safe Room beds. Carolina needs a room with a man on a bed — she must be in the Bedroom. An unknown man is on one of the Bedroom beds.`,
+      highlightCells: ['4-4', '4-5'],
+    },
+    {
+      id: 'deduce-bed-row-block',
+      action: 'deduce',
+      order: 0.2,
+      prerequisites: [],
+      message: `💡 Both Bedroom beds are in row 5. An unknown man must be on one of them, which blocks the entire row. Mark X on all other cells in row 5!`,
+      highlightCells: ['4-4', '4-5'],
+    },
+    {
       suspect: 'howie',
       order: 1,
       prerequisites: [],
       target: { type: 'room', room: 'bathroom' },
       messages: {
         single: `💡 Howie is isolated in the Bathroom — only one cell works!`,
-        multiple: `💡 Edna must be in the bottom row. This means no man can reach the Safe Room beds, so Carolina must be in the Bedroom. A man is on a bed in the Bedroom (row 5), blocking that row. This isolates Howie in the Bathroom.`,
+        multiple: `💡 Howie was in the Bathroom. With row 5 blocked by the beds, which Bathroom cells remain?`,
       },
     },
     {

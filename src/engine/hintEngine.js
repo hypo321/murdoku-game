@@ -26,9 +26,14 @@ import { createCellKey } from '../constants';
  *
  * @param {Object} puzzle - The puzzle data
  * @param {Object} placements - Current placements (cellKey -> suspectId)
+ * @param {Set<string>} [consumedHintIds] - IDs of deduction hints already shown
  * @returns {HintResult}
  */
-export function getNextHint(puzzle, placements) {
+export function getNextHint(
+  puzzle,
+  placements,
+  consumedHintIds = new Set(),
+) {
   // Check if the PLAYER has placed all suspects (not the solver's internal state)
   const playerPlacedCount = Object.keys(placements).length;
   if (playerPlacedCount >= puzzle.suspects.length) {
@@ -59,6 +64,7 @@ export function getNextHint(puzzle, placements) {
       rawSolver,
       solvedSolver,
       placedIds,
+      consumedHintIds,
     );
     if (result) return result;
   }
@@ -86,6 +92,7 @@ export function getNextHint(puzzle, placements) {
  * @param {MurdokuSolver} rawSolver - Solver with only player placements (for skipIfMoreThan)
  * @param {MurdokuSolver} solvedSolver - Fully solved solver (for narrowed candidates)
  * @param {Set<string>} placedIds - Set of already-placed suspect IDs
+ * @param {Set<string>} consumedHintIds - IDs of deduction hints already shown
  * @returns {HintResult|null}
  * @private
  */
@@ -94,12 +101,32 @@ function _findCuratedHint(
   rawSolver,
   solvedSolver,
   placedIds,
+  consumedHintIds,
 ) {
   const sortedHints = [...puzzle.hints].sort(
     (a, b) => a.order - b.order,
   );
 
   for (const hint of sortedHints) {
+    // Skip consumed deduction hints
+    if (hint.id && consumedHintIds.has(hint.id)) continue;
+
+    // Handle deduction hints (no suspect placement)
+    if (hint.action === 'deduce') {
+      const prereqsMet = (hint.prerequisites || []).every((prereq) =>
+        placedIds.has(prereq),
+      );
+      if (!prereqsMet) continue;
+
+      return {
+        id: hint.id,
+        message: hint.message,
+        highlightCells: hint.highlightCells || [],
+        suspect: null,
+        action: 'deduce',
+      };
+    }
+
     // Skip if this suspect is already placed
     if (placedIds.has(hint.suspect)) continue;
 
@@ -155,12 +182,10 @@ function _findCuratedHint(
     }
 
     // For marking hints with room info, substitute room names
+    // Use rawSolver so we only claim a room is blocked when the
+    // player can actually see it (not via advanced solver deductions)
     if (!isSingle && hint.messages.roomBlocked) {
-      const roomStatus = _checkRoomBlocking(
-        hint,
-        solvedSolver,
-        puzzle,
-      );
+      const roomStatus = _checkRoomBlocking(hint, rawSolver, puzzle);
       if (roomStatus) {
         message = hint.messages.roomBlocked
           .replace('{blockedRooms}', roomStatus.blocked)
@@ -168,12 +193,18 @@ function _findCuratedHint(
       }
     }
 
+    // When the player sees multiple candidates, highlight all visible
+    // options (raw), not just the solver-narrowed ones
+    const cellsToHighlight = isSingle ? candidates : rawFiltered;
+
     return {
       message,
-      highlightCells: [...candidates],
+      highlightCells: [...cellsToHighlight],
       suspect: hint.suspect,
       action:
-        candidates.size === 1 && isSingle ? 'place' : 'eliminate',
+        cellsToHighlight.size === 1 && isSingle
+          ? 'place'
+          : 'eliminate',
     };
   }
 

@@ -28,6 +28,8 @@ export function useHints(puzzle) {
 
   // Tracks a pending hint waiting for the second click to reveal cells
   const pendingHintRef = useRef(null);
+  // Tracks IDs of consumed deduction hints so they don't repeat
+  const consumedHintIdsRef = useRef(new Set());
 
   /**
    * Clears all highlights (error and hint cells) and any pending hint.
@@ -37,6 +39,15 @@ export function useHints(puzzle) {
     setHintCells({});
     pendingHintRef.current = null;
   }, []);
+
+  /**
+   * Full reset: clears highlights and consumed deduction hints.
+   * Call this on puzzle reset or puzzle change.
+   */
+  const resetHints = useCallback(() => {
+    clearHighlights();
+    consumedHintIdsRef.current = new Set();
+  }, [clearHighlights]);
 
   /**
    * Gets a hint based on current game state.
@@ -92,6 +103,11 @@ export function useHints(puzzle) {
 
       // Stage 2: if there's a pending hint, reveal its highlighted cells
       if (pendingHint) {
+        // Mark deduction hints as consumed so they don't repeat
+        if (pendingHint.action === 'deduce' && pendingHint.id) {
+          consumedHintIdsRef.current.add(pendingHint.id);
+        }
+
         if (
           pendingHint.highlightCells &&
           pendingHint.highlightCells.length > 0
@@ -118,7 +134,11 @@ export function useHints(puzzle) {
       }
 
       // Stage 1: generate a new hint, show message only (no cell highlights)
-      const hint = getNextHint(puzzle, placements);
+      const hint = getNextHint(
+        puzzle,
+        placements,
+        consumedHintIdsRef.current,
+      );
       pendingHintRef.current = hint;
 
       return {
@@ -138,5 +158,6 @@ export function useHints(puzzle) {
     // Actions
     getHint,
     clearHighlights,
+    resetHints,
   };
 }
